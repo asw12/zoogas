@@ -89,7 +89,7 @@ public class WorldServer extends Thread {
                     
                     String newClientAdd = sc.socket().getInetAddress().getHostAddress();
                     if (newPort != ServerToClient.CONNECTIONS_FULL) {
-                        System.out.println("new Client on " + newPort);
+                        System.out.println("New client " + newClientAdd + " on " + newPort);
                         new ServerToClient(new InetSocketAddress(newClientAdd, newPort), newPort, sc, bb);
                     }
                 } else {
@@ -193,13 +193,20 @@ public class WorldServer extends Thread {
                 System.out.println("Binding to " + clientAddress);
                 serverSocketChannel.socket().setSoTimeout(1000);
                 serverSocketChannel.configureBlocking(true);
-                serverSocketChannel.socket().bind(clientAddress);
+                serverSocketChannel.socket().bind(new InetSocketAddress(InetAddress.getLocalHost(), port));
 
                 sc.write(bb);
                 sc.close();
                 System.out.println(" waiting for connection..." + port);
                 while(socketChannel == null) {
                     socketChannel = serverSocketChannel.accept();
+                    
+                    if(socketChannel != null) {
+                        if(!socketChannel.socket().getInetAddress().equals(clientAddress.getAddress())) {
+                            System.err.println("Incoming connection (" + socketChannel.socket().getInetAddress() + ") on serverSocketChannel did not match the expected address: " + clientAddress.getAddress());
+                            socketChannel = null;
+                        }
+                    }
                 }
 
                 System.out.println(" received connection... "+ port);
@@ -394,6 +401,7 @@ public class WorldServer extends Thread {
         private void sendConnectPeer(ServerToClient neighbor, int dir) {
             ServerSocket socket = neighbor.serverSocketChannel.socket();
             String address = socket.getInetAddress().getHostAddress();
+            System.out.println(address);
             int port = neighbor.port;
 
             ByteBuffer bb = prepareBuffer(packetCommand.CONNECT_PEER, address.getBytes().length + 1 + 4 + 4);
