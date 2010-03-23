@@ -55,7 +55,8 @@ public class Board extends MooreTopology {
         remoteCell = new HashMap<Point, RemoteCellCoord>();
         try {
             localhost = InetAddress.getLocalHost().getHostAddress();
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -64,24 +65,6 @@ public class Board extends MooreTopology {
     // helper to test if a cell is on board
     public final boolean onBoard(Point p) {
         return p.x >= 0 && p.x < size && p.y >= 0 && p.y < size;
-    }
-
-    // helper to get direction (quick implementation; reimplement in superclass for performance optimization)
-    public int getNeighborDirection(Point p, Point q) {
-        Point n = new Point();
-        int ns = neighborhoodSize();
-        for (int dir = 0; dir < ns; ++dir) {
-            getNeighbor(p, n, dir);
-            if (n.x == q.x && n.y == q.y)
-                return dir;
-        }
-        return -1;
-    }
-
-    // helper to reverse direction
-    public int reverseDir(int dir) {
-        int ns = neighborhoodSize();
-        return (dir + (ns >> 1)) % ns;
     }
 
     // helper to turn a vector into a string
@@ -117,25 +100,17 @@ public class Board extends MooreTopology {
     // scheduling methods
     // gotUpdates() is true if total board update rate is >0
     public final boolean gotUpdates() {
-	return quad.topQuadRate() > 0;
+        return quad.topQuadRate() > 0;
     }
 
     // getWaitTime: returns wait time to next event
     public final double getWaitTime() {
-	return -Math.log(Math.random()) / quad.topQuadRate();
+        return -Math.log(Math.random()) / quad.topQuadRate();
     }
 
     // getRandomPair places coordinates of a random cell in p, sampled proportionally to its update rate
-    public final void getRandomCell(Point p) {
-        quad.sampleQuadLeaf(p);
-    }
-
-    // getRandomPair places coordinates of a random pair in (p,n) and returns direction from p to n
-    public final int getRandomPair(Point p, Point n) {
-        getRandomCell(p);
-        int dir = readCell(p).sampleDir();
-        getNeighbor(p, n, dir);
-        return dir;
+    public final Point getRandomCell() {
+        return quad.sampleQuadLeaf();
     }
 
     // net init methods
@@ -150,7 +125,8 @@ public class Board extends MooreTopology {
             connectServer = new ConnectionServer(this, boardServerPort);
             connectServer.start();
 
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
     }
@@ -238,8 +214,6 @@ public class Board extends MooreTopology {
 
     public void addBond(Point p, Point q, String bond) {
         int ns = neighborhoodSize();
-        int dir = getNeighborDirection(p, q);
-        int rev = reverseDir(dir);
         outgoing(p).put(bond, q.subtract(p));
         incoming(q).put(bond, p.subtract(q));
         //	System.err.println("Adding bond "+bond+" from "+p+" to "+q);
@@ -277,14 +251,15 @@ public class Board extends MooreTopology {
 
     // update()
     public final void update(double maxTime, BoardRenderer renderer) {
-	double t = 0;
-	while (gotUpdates()) {
-	    t += getWaitTime();
-	    if (t >= maxTime)
-		break;
+        double t = 0;
+        while (gotUpdates()) {
+            t += getWaitTime();
+            if (t >= maxTime)
+                break;
 
-            Point p = new Point(), n = new Point(); // Must stay inside the loop; Points are stored (as Particles)
-            int dir = getRandomPair(p, n);
+            Point p = getRandomCell();
+            int dir = readCell(p).sampleDir();
+            Point n = getNeighbor(p, dir);
             Particle oldSource = readCell(p);
             Particle oldTarget = onBoard(n) ? readCell(n) : null;
             UpdateEvent newPair = evolvePair(p, n, dir);
@@ -312,7 +287,8 @@ public class Board extends MooreTopology {
         UpdateEvent pp = null;
         if (onBoard(targetCoords)) {
             pp = evolveLocalSourceAndLocalTarget(sourceCoords, targetCoords, dir);
-        } else {
+        }
+        else {
             // request remote evolveLocalTargetForRemoteSource
             RemoteCellCoord remoteCoords = remoteCell.get(targetCoords);
             if (remoteCoords != null)
@@ -503,7 +479,7 @@ public class Board extends MooreTopology {
     // method to send requests to establish two-way network connections between cells
     // (called in the client during initialization)
     protected final void connectBorder(Point sourceStart, Point targetStart, Point lineVector, int lineLength, Point remoteOrigin,
-                                     InetSocketAddress remoteBoard) {
+                                       InetSocketAddress remoteBoard) {
         String[] connectRequests = new String[lineLength];
         Point source = new Point(sourceStart);
         Point target = new Point(targetStart);
@@ -523,9 +499,9 @@ public class Board extends MooreTopology {
 
         BoardServer.sendTCPPacket(remoteBoard.getAddress(), remoteBoard.getPort(), connectRequests);
     }
-    
+
     protected final void connectBorderInDirection(int dir, InetSocketAddress remote) {
-        switch(dir) {
+        switch (dir) {
             case 0:
                 connectBorder(new Point(0, 127), new Point(0, 128), new Point(1, 0), 128, new Point(0, +size), remote); // north
                 break;
@@ -558,11 +534,11 @@ public class Board extends MooreTopology {
     protected final void registerParticle(Particle p) {
         nameToParticle.put(p.name, p);
         SortedSet<Particle> particles;
-        if(!prefixToParticles.containsKey(p.prefix)) {
+        if (!prefixToParticles.containsKey(p.prefix)) {
             particles = new TreeSet<Particle>();
             prefixToParticles.put(p.prefix, particles);
         }
-        else{
+        else {
             particles = prefixToParticles.get(p.prefix);
         }
 
@@ -572,9 +548,9 @@ public class Board extends MooreTopology {
     protected final void deregisterParticle(Particle p) {
         nameToParticle.remove(p.name);
         SortedSet<Particle> prefixSet = prefixToParticles.get(p.prefix);
-        if(prefixSet != null) {
+        if (prefixSet != null) {
             prefixSet.remove(p);
-            if(prefixSet.size() != 0)
+            if (prefixSet.size() != 0)
                 prefixToParticles.remove(p.prefix);
         }
         else {
@@ -588,13 +564,13 @@ public class Board extends MooreTopology {
     }
 
     public final boolean gotPrefix(String prefix) {
-	return prefixToParticles.containsKey(prefix);
+        return prefixToParticles.containsKey(prefix);
     }
 
     public final Set<Particle> getParticlesByPrefix(String prefix) {
-        if(prefixToParticles.containsKey(prefix))
+        if (prefixToParticles.containsKey(prefix))
             return prefixToParticles.get(prefix);
-        System.err.println(prefix+" particles are not defined!");
+        System.err.println(prefix + " particles are not defined!");
         return new HashSet<Particle>();
     }
 

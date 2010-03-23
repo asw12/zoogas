@@ -1,5 +1,5 @@
 public abstract class Topology {
-    public abstract int getNeighbor (Point p, Point n, int ni);
+    public abstract Point getNeighbor (Point p, int ni);
     public abstract int neighborhoodSize();
 
     public abstract String dirString(int dir);
