@@ -114,8 +114,18 @@ public class Board extends MooreTopology {
         return Math.max(x, y);
     }
 
-    // update methods
-    // getRandomPair places coordinates of a random cell in p, weighted by its update rate
+    // scheduling methods
+    // gotUpdates() is true if total board update rate is >0
+    public final boolean gotUpdates() {
+	return quad.topQuadRate() > 0;
+    }
+
+    // getWaitTime: returns wait time to next event
+    public final double getWaitTime() {
+	return -Math.log(Math.random()) / quad.topQuadRate();
+    }
+
+    // getRandomPair places coordinates of a random cell in p, sampled proportionally to its update rate
     public final void getRandomCell(Point p) {
         quad.sampleQuadLeaf(p);
     }
@@ -266,9 +276,13 @@ public class Board extends MooreTopology {
     }
 
     // update()
-    public final void update(double boardUpdates, BoardRenderer renderer) {
-        double maxUpdates = boardUpdates * quad.topQuadRate();
-        for (int updatedCells = 0; updatedCells < maxUpdates; ++updatedCells) {
+    public final void update(double maxTime, BoardRenderer renderer) {
+	double t = 0;
+	while (gotUpdates()) {
+	    t += getWaitTime();
+	    if (t >= maxTime)
+		break;
+
             Point p = new Point(), n = new Point(); // Must stay inside the loop; Points are stored (as Particles)
             int dir = getRandomPair(p, n);
             Particle oldSource = readCell(p);
@@ -285,7 +299,7 @@ public class Board extends MooreTopology {
                     renderer.drawCell(n);
 
                 if (newPair.verb != null)
-                    renderer.showVerb(p, n, oldSource, oldTarget, newPair);
+                    renderer.showVerb(newPair);
             }
         }
     }

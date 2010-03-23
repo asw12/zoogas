@@ -97,13 +97,18 @@ public class ZooGas implements KeyListener {
     int belowBoardHeight = 0; // size in pixels of whatever appears below the board -- currently unused but left as a placeholder
     int toolBarWidth = 100, toolLabelWidth = 200, toolHeight = 30; // size in pixels of various parts of the tool bar (right of the board)
     int textBarWidth = 400, textHeight = 30;
+
+    // verb history / subtitle track
     int verbHistoryLength = 10, verbHistoryPos = 0, verbHistoryRefreshPeriod = 20, verbHistoryRefreshCounter = 0, verbsSinceLastRefresh = 0;
     String[] verbHistory = new String[verbHistoryLength];
     Particle[] nounHistory = new Particle[verbHistoryLength];
+    Point[] placeHistory = new Point[verbHistoryLength];
+    int[] verbHistoryAge = new int[verbHistoryLength];
+
     Vector<String> hints = new Vector<String>();
     int currentHint = 0;
-    double hintBrightness = 0;
-    private final int updatesRow = 0, titleRow = 4, networkRow = 5, objectiveRow = 6, hintRow = 7, nounRow = 8, verbHistoryRow = 12;
+    double hintBrightness = 0, initialHintBrightness = 240, hintDecayRate = .2;
+    private final int updatesRow = 0, titleRow = 4, networkRow = 5, hintRow = 6, objectiveRow = 8;
 
     // helper objects
     Point cursorPos = new Point(); // co-ordinates of cell beneath current mouse position
@@ -260,17 +265,38 @@ public class ZooGas implements KeyListener {
         initSprayTools();
 
         // init objective
-        // hackish test cases
+
+	// TODO: create the following challenge sequence:
+	// - place 5 animals
+	// - place 5 guests
+	// - create an enclosure
+	// - while keeping at least 5 guests alive, do each of the following:
+	//  - (once only) get animal population over 100
+	//  - (for at least 30 seconds) maintain species diversity at ~2.9 species or better, i.e. keep entropy of species distribution above log(2.9)
+	//  - (for at least 30 seconds) maintain species diversity at ~3.9 species or better, i.e. keep entropy of species distribution above log(3.9)
+	// - keep at least 5 guests alive, and species diversity at ~3.9 or better, while the computer makes your life hell by...
+	//  - spraying a random burst of animals around a random location in the zoo every 10 seconds
+	//  - spraying a low-intensity acid storm all over the zoo
+	//  - a volcano erupts at a random location in the zoo, pouring lava everywhere
+	//  - one of your zoo guests starts spraying perfume everywhere
+	//  - one of your zoo guests turns into a terrorist, throwing bombs all over the place
+
+
+	// TODO: challenges should be able provide challenge-specific scores, feedback and rewards;
+	// e.g. (at a minimum) the diversity scores and particle counts that are currently displayed.
+
+
+        // hackish test cases (kept here for reference)
         // place 5 guests anywhere
-        //objective = new Challenge(board, new Challenge.EncloseParticles(5, "zoo_guest", board));
+        // objective = new Challenge(board, new Challenge.EncloseParticles(5, "zoo_guest", board));
         // create 4 separated enclosures
-        //objective = new Challenge(board, new Challenge.EnclosuresCondition(board, null, null, 4));
+        // objective = new Challenge(board, new Challenge.EnclosuresCondition(board, null, null, 4));
         // create 3 separated enclosures with 4 zoo_guests in each
         //objective = new Challenge(board, new Challenge.EnclosuresCondition(board, null, new Challenge.EncloseParticles(4, "zoo_guest", board), 3));
         // place a zoo_guest, then wait 50 updates
         //objective = new Challenge(board, new Challenge.SucceedNTimes(null, new Challenge.EncloseParticles(1, "zoo_guest", board), 50));
-        // place 5 rock_imps anywhere
-        //objective = new Challenge(board, new Challenge.EncloseParticles(5, "rock_imp/s:0", board));
+        // place 5 animals anywhere
+        // objective = new Challenge(board, new Challenge.EncloseParticles(5, "critter/.*", board));
 
 	// init hints
 	String specialKeys = "Special keys: "+cheatKey+" (reveal state) "+slowKey+" (reveal bonds) "+stopKey+" (freeze)";
@@ -287,7 +313,6 @@ public class ZooGas implements KeyListener {
 	hints.add ("Use cage-builders to get your zoo started.");
 	hints.add ("Next to each tool is a bar showing the reserve.");
 	hints.add ("If you mouseover a pixel on the board, its name appears.");
-	hints.add ("At bottom right, you can also see a list of recent events.");
 	hints.add ("When you build a cage, it contains a few animals.");
 	hints.add (specialKeys);
 	hints.add ("The \""+cheatKey+"\" key reveals the hidden state of a pixel.");
@@ -313,6 +338,8 @@ public class ZooGas implements KeyListener {
                         drawBonds(g);
                         drawEnclosures(g);
                     }
+		    drawVerbs(g);
+		    drawCursorNoun(g);
                 }
             };
         toolBoxPanel = new JPanel() {
@@ -374,7 +401,7 @@ public class ZooGas implements KeyListener {
          
         MouseListener statusMouse = new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
-                hintBrightness = 240;
+                hintBrightness = initialHintBrightness;
                 currentHint = (currentHint + 1) % hints.size();
             }
         };
@@ -532,22 +559,62 @@ public class ZooGas implements KeyListener {
 
         // current objective
         if (objective != null)
-            printOrHide(g, objective.getDescription(), objectiveRow, true, Color.white);
+            printOrHide(g, "Goal: " + objective.getDescription(), objectiveRow, true, Color.white);
+	else {
+	    // until we get challenges working properly, just display an auto-rotating hint and a few feedback scores
 
-        // identify particle that cursor is currently over
-        if (board.onBoard(cursorPos)) {
-            Particle cursorParticle = board.readCell(cursorPos);
-            boolean isSpace = cursorParticle == spaceParticle;
-            printOrHide(g, cursorParticle == null ? "Mouseover board to identify pixels" : "Under cursor:", nounRow, true, Color.white);
-            String nameToShow =
-                cheatPressed ? cursorParticle.name + " (" + cursorParticle.getReferenceCount() + ")" + board.singleNeighborhoodDescription(cursorPos, false) :
-                cursorParticle.visibleName();
-            Color fgCurs = cursorParticle == null ? Color.white : cursorParticle.color;
-            Color bgCurs = cheatPressed ? new Color(255 - fgCurs.getRed(), 255 - fgCurs.getGreen(), 255 - fgCurs.getBlue()) : Color.black;
-            printOrHide(g, nameToShow, nounRow + 1, true, fgCurs, bgCurs);
-        } else {
-            printOrHide(g, "", nounRow + 1, false, Color.white);
-        }
+	    // current hint
+	    hintBrightness -= hintDecayRate;
+	    if (hintBrightness < 0) {
+		hintBrightness = initialHintBrightness;
+		currentHint = (currentHint + 1) % hints.size();
+	    }
+	    
+	    Color hintColor = new Color ((int) hintBrightness, (int) hintBrightness, 0);
+	    printOrHide(g, hints.elementAt(currentHint), hintRow, true, hintColor);
+
+	    // quick, hacky feedback scores on population stats - to be replaced by more generic challenges (which may incorporate these scores)
+	    String guestName = "zoo_guest";
+	    String critterPrefix = "critter";
+	    int targetGuests = 10;
+	    int targetCritters = 100;
+	    double targetDiversity = 3.5;
+
+	    Particle guestParticle = board.getParticleByName(guestName);
+	    int totalGuests = guestParticle==null ? 0 : guestParticle.getReferenceCount();
+	    String guestString = "Guests: " + String.format("% 2d", totalGuests) + (totalGuests < targetGuests
+							     ? (" (goal: " + targetGuests + ")")
+							     : "");
+
+	    int totalCritters = 0;
+	    double diversityScore = 0;
+	    if (board.gotPrefix(critterPrefix)) {
+		Set<Particle> critters = board.getParticlesByPrefix(critterPrefix);
+		if (critters != null) {
+		    for (Particle critter : critters)
+			totalCritters += critter.getReferenceCount();
+		    double entropy = 0;
+		    for (Particle critter : critters) {
+			double p = ((double) critter.getReferenceCount()) / (double) totalCritters;
+			if (p > 0)
+			    entropy -= p * Math.log(p);
+		    }
+		    diversityScore = Math.exp(entropy);
+		}
+	    }
+
+	    String popString = "Animals: " + String.format("% 3d", totalCritters) + (totalCritters < targetCritters
+										     ? (" (goal: " + targetCritters + ")")
+										     : "");
+
+	    String divString = totalCritters < targetCritters
+		? ""
+		: (", diversity: " + String.format("%.2f", diversityScore) + (diversityScore < targetDiversity
+									      ? (" (goal: " + targetDiversity + ")")
+									      : ""));
+            printOrHide(g, guestString, objectiveRow, true, Color.green);
+            printOrHide(g, popString + divString, objectiveRow + 1, true, Color.green);
+	}
 
         // update rate and other stats
         StringBuilder sb = new StringBuilder();
@@ -557,25 +624,118 @@ public class ZooGas implements KeyListener {
         printOrHide(g, "Heap: current " + kmg(runtime.totalMemory()) + ", max " + kmg(runtime.maxMemory()) + ", free " + kmg(runtime.freeMemory()),
                     updatesRow + 1, true, new Color(48, 48, 0));
         printOrHide(g, formatter.format("Updates/sec: %.2f", updatesPerSecond).toString(), updatesRow + 2, true, new Color(64, 64, 0));
+    }
 
-        // recent verbs
-        printOrHide(g, "Recent events:", verbHistoryRow, true, Color.white);
+    protected void drawVerbs(Graphics g) {
+	// display params
+	int maxAge = 100;
+	boolean writeNouns = false;
+	int verbBalloonBorder = 2;
+	int bubbleLines = writeNouns ? 2 : 1;
+
+	// font
+        FontMetrics fm = g.getFontMetrics();
+
+	// loop over verb history
         for (int vpos = 0; vpos < verbHistoryLength; ++vpos) {
             int v = (verbHistoryPos + verbHistoryLength - vpos) % verbHistoryLength;
-            String verbText = null;
-            Color verbColor = null;
+
             if (verbHistory[v] != null) {
-                String noun = cheatPressed ? nounHistory[v].name : nounHistory[v].visibleName();
-                String nounInBrackets = noun.length() > 0 ? (" (" + noun + ")") : "";
-                // uncomment to always print noun:
-                //              verbText = (cheatPressed ? verbHistory[v] : Particle.visibleText(verbHistory[v])) + nounInBrackets;
-                verbText = cheatPressed ? (verbHistory[v] + nounInBrackets) : Particle.visibleText(verbHistory[v]);
-                verbColor = nounHistory[v].color;
-            }
-            printOrHide(g, verbText, verbHistoryRow + vpos + 1, true, verbColor);
-            if (++verbHistoryRefreshCounter >= verbHistoryRefreshPeriod)
-                verbsSinceLastRefresh = verbHistoryRefreshCounter = 0;
-        }
+		if (verbHistoryAge[v]++ >= maxAge)
+		    verbHistory[v] = null;
+		else {
+		    String nounText = cheatPressed ? nounHistory[v].name : nounHistory[v].visibleName();
+		    String verbText = cheatPressed ? verbHistory[v] : Particle.visibleText(verbHistory[v]);
+		    Color verbColor = nounHistory[v].color;
+
+		    String[] text = new String[bubbleLines];
+		    Color[] textColor = new Color[bubbleLines];
+
+		    text[0] = verbText;
+		    textColor[0] = verbColor;
+
+		    if (writeNouns) {
+			text[1] = nounText;
+			textColor[1] = verbColor;
+		    }
+
+		    drawSpeechBalloon (g, placeHistory[v], 0., -1., verbBalloonBorder, text, textColor, verbColor, Color.black);
+		}
+	    }
+	}
+
+	if (++verbHistoryRefreshCounter >= verbHistoryRefreshPeriod)
+	    verbsSinceLastRefresh = verbHistoryRefreshCounter = 0;
+    }
+
+    protected void drawCursorNoun(Graphics g) {
+	int nounBalloonBorder = 2;
+        if (board.onBoard(cursorPos)) {
+            Particle cursorParticle = board.readCell(cursorPos);
+            boolean isSpace = cursorParticle == spaceParticle;
+
+            String nameToShow =
+                cheatPressed ? cursorParticle.name + " (" + cursorParticle.getReferenceCount() + ")" + board.singleNeighborhoodDescription(cursorPos, false) :
+                cursorParticle.visibleName();
+
+	    if (nameToShow.length() > 0) {
+		Color fgCurs = cursorParticle == null ? Color.white : cursorParticle.color;
+		Color bgCurs = cheatPressed ? new Color(255 - fgCurs.getRed(), 255 - fgCurs.getGreen(), 255 - fgCurs.getBlue()) : Color.black;
+
+		String[] text = new String[1];
+		Color[] textColor = new Color[1];
+
+		text[0] = nameToShow;
+		textColor[0] = bgCurs;
+
+		drawSpeechBalloon (g, cursorPos, 0., +3., nounBalloonBorder, text, textColor, null, fgCurs);
+	    }
+	}
+    }
+
+    // TODO: drawSpeechBalloon should detect cases where the speech balloon is out of the Panel's paintable area, and adjust its position accordingly
+    protected void drawSpeechBalloon (Graphics g, Point cell, double xOffset, double yOffset, int balloonBorder, String[] text, Color[] textColor, Color balloonColor, Color bgColor) {
+        FontMetrics fm = g.getFontMetrics();
+
+	int xSize = 0,
+	    ySize = fm.getHeight();
+
+	for (int n = 0; n < text.length; ++n) {
+	    xSize = Math.max (xSize, fm.stringWidth(text[n]));
+	}
+
+	java.awt.Point cellGraphicsCoords = renderer.getGraphicsCoords(cell);
+
+	int xPos = cellGraphicsCoords.x + (int) (xSize * (xOffset - 0.5)),
+	    yPos = cellGraphicsCoords.y + (int) (ySize * yOffset);
+
+	// draw speech balloon
+	int yTextSize = ySize * text.length;
+
+	if (balloonColor != null) {
+	    g.setColor(balloonColor);
+	    g.drawLine(xPos, yPos, cellGraphicsCoords.x, cellGraphicsCoords.y);
+	}
+
+	g.setColor(bgColor);
+	g.fillRect(xPos - balloonBorder,
+		   yPos - yTextSize - balloonBorder,
+		   xSize + 2*balloonBorder,
+		   yTextSize + 2*balloonBorder);
+
+	for (int n = 0; n < text.length; ++n) {
+	    g.setColor(textColor[n]);
+	    g.drawString(text[n], xPos, yPos - ySize*n);
+	}
+
+	if (balloonColor != null) {
+	    g.setColor(balloonColor);
+	    g.drawRect(xPos - balloonBorder,
+		       yPos - yTextSize - balloonBorder,
+		       xSize + 2*balloonBorder,
+		       yTextSize + 2*balloonBorder);
+	}
+
     }
 
     // tool bars
