@@ -27,6 +27,23 @@ import java.io.*;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.w3c.dom.Document;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Result;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.transform.stream.StreamSource;
+
+import org.w3c.dom.Element;
+
+import zoogas.rules.RandomVariable;
+import zoogas.rules.TransformMatcher;
+
 public class Board extends MooreTopology {
     public int size = 0; // size of board in cells
 
@@ -649,10 +666,67 @@ public class Board extends MooreTopology {
     public String debugDumpStats() {
         int transRules = 0, outcomes = 0;
         for (Particle p : nameToParticle.values()) {
-            transRules += p.transformationRules();
+            transRules += p.countTransformationRules();
             outcomes += p.outcomes();
         }
         return nameToParticle.size() + " states, " + transRules + " rules, " + outcomes + " outcomes";
+    }
+
+    /**
+     *Writes the compiled rules/particles to a file in XML format. This should be considered a temporary method.
+     * @param filename
+     */
+    public void toXML(String filename) {
+        try {
+            // create a DOM object
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            Document doc = docBuilder.newDocument();
+
+            // create the transformation to output "pretty" XML
+            TransformerFactory transfact = TransformerFactory.newInstance();
+            transfact.setAttribute("indent-number", 4);
+            Transformer serializer = transfact.newTransformer();
+            serializer.setOutputProperty(OutputKeys.INDENT, "yes");
+            //serializer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes"); // omit the xml header
+
+            Element rules = doc.createElement("Rules");
+            doc.appendChild(rules);
+
+            for (String prefix : prefixToParticles.keySet()) {
+                Element prefixNode = doc.createElement("Set");
+                prefixNode.setAttribute("prefix", prefix);
+                
+                for(Particle p : prefixToParticles.get(prefix)) {
+                    Element particleNode = doc.createElement("Particle");
+                    particleNode.setAttribute("name", p.name);
+                    
+                    for(TransformMatcher rule : patternSet.getSourceTransformRules(p.name, 0)) {
+                        Element ruleNode = doc.createElement("Transform");
+                        ruleNode.setAttribute("source", rule.A());
+                        ruleNode.setAttribute("target", rule.B());
+                        ruleNode.setAttribute("newsource", rule.transformPattern().getNewSource());
+                        ruleNode.setAttribute("newtarget", rule.transformPattern().getNewTarget());
+                        ruleNode.setAttribute("prob", ((Double)rule.P()).toString());
+                        ruleNode.setAttribute("verb", rule.V());
+                        particleNode.appendChild(ruleNode);
+                    }
+
+                    prefixNode.appendChild(particleNode);
+                }
+                
+                rules.appendChild(prefixNode);
+            }
+
+            // output the transformed results
+            StreamResult result = new StreamResult(new OutputStreamWriter(new FileOutputStream(filename), "UTF-8"));
+            DOMSource source = new DOMSource(doc);
+            serializer.transform(source, result);
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
 

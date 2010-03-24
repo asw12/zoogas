@@ -11,7 +11,7 @@ public class UpdateEvent {
     public Particle source = null, target = null;
     public Particle oldSource = null, oldTarget = null;
 
-    public TransformRulePattern pattern = null;
+    public TransformPattern pattern = null;
     // everything below here ignored by equals() and hashCode() methods
     public String verb = null;
     private HashMap<String, Point> bondLabel = null;
@@ -21,7 +21,7 @@ public class UpdateEvent {
 
     // methods
     // constructor
-    public UpdateEvent(Particle sOld, Particle tOld, Particle s, Particle t, String v, TransformRulePattern p) {
+    public UpdateEvent(Particle sOld, Particle tOld, Particle s, Particle t, String v, TransformPattern p) {
         source = s;
         target = t;
         verb = v;

@@ -2,14 +2,14 @@ package zoogas.rules;
 
 import java.util.Vector;
 
-public class TransformRulePattern extends RulePattern {
+public class TransformPattern extends RulePattern {
     // data
     String dir = null, C = null, D = null, V = null;
     public double P = 0;
     Vector<BondPattern> optionalLhsBond = null, requiredLhsBond = null, excludedLhsBond = null, rhsBond = null;
 
     // constructors
-    public TransformRulePattern(String w, String dir, String a, String b, String c, String d, double p, String v) {
+    public TransformPattern(String w, String dir, String a, String b, String c, String d, double p, String v) {
         super(w, a, b);
         if (dir != null && dir.length() > 0)
             this.dir = dir;
@@ -39,5 +39,13 @@ public class TransformRulePattern extends RulePattern {
         for (int n = 0; n < b.length; ++n)
             bondVec.add(BondPattern.fromString(b[n]));
         return bondVec;
+    }
+    
+    public String getNewSource() {
+        return C;
+    }
+
+    public String getNewTarget() {
+        return D;
     }
 }

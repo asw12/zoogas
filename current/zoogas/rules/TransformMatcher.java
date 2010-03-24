@@ -26,26 +26,26 @@ import java.util.regex.*;
 //  $%3+2.1 => ($1 + 2) mod 3
 
 
-public class TransformRuleMatch extends RuleMatch {
+public class TransformMatcher extends RuleMatch {
     // data
     private Pattern dirPattern = null;
     private boolean dirMatches = false;
 
     // constructors
-    public TransformRuleMatch(TransformRulePattern p) {
+    public TransformMatcher(TransformPattern p) {
         super(p);
         if (p.dir != null)
             dirPattern = Pattern.compile(p.dir);
     }
 
-    public TransformRuleMatch(TransformRulePattern p, Topology topology, int dir) {
+    public TransformMatcher(TransformPattern p, Topology topology, int dir) {
         this(p);
         bindDir(topology, dir);
     }
 
     // rule accessor
-    public final TransformRulePattern transformPattern() {
-        return (TransformRulePattern)pattern;
+    public final TransformPattern transformPattern() {
+        return (TransformPattern)pattern;
     }
 
     // override bindDir()
@@ -69,6 +69,12 @@ public class TransformRuleMatch extends RuleMatch {
     }
 
     // other public methods
+    public final String A() {
+        return expand(transformPattern().A);
+    }
+    public final String B() {
+        return expand(transformPattern().B);
+    }
     public final String C() {
         return expand(transformPattern().C);
     }

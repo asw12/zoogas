@@ -11,6 +11,9 @@ import java.awt.Color;
 
 import java.io.*;
 
+import javax.xml.stream.XMLOutputFactory;
+import javax.xml.stream.XMLStreamWriter;
+
 /**
  * A set that contains rules parsed into definitions of pairwise interactions
  */
@@ -24,20 +27,20 @@ public class PatternSet extends RuleSet {
 
         this.topology = topology;
         int ns = topology.neighborhoodSize();
-        transformRuleMatch = new ArrayList<Vector<TransformRuleMatch>>(ns);
+        transformRuleMatch = new ArrayList<Vector<TransformMatcher>>(ns);
         for (int d = 0; d < ns; ++d)
-            transformRuleMatch.add(new Vector<TransformRuleMatch>());
+            transformRuleMatch.add(new Vector<TransformMatcher>());
     }
 
     // data
     private Topology topology = null;
     private Vector<EnergyRulePattern> energyRulePattern = new Vector<EnergyRulePattern>();
-    private Vector<TransformRulePattern> transformRulePattern = new Vector<TransformRulePattern>();
+    private Vector<TransformPattern> transformRulePattern = new Vector<TransformPattern>();
     private Vector<ParticlePattern> particlePattern = new Vector<ParticlePattern>();
 
     // direction-bound transformation rules
     // outer vector is indexed by neighbor direction, inner vector is the set of partially-bound rules for that direction
-    private ArrayList<Vector<TransformRuleMatch>> transformRuleMatch = null; // generators for production rules
+    private ArrayList<Vector<TransformMatcher>> transformRuleMatch = null; // generators for production rules
 
     // energy rules
     private HashMap<String, Vector<EnergyRuleMatch>> energyRuleMatch = new HashMap<String, Vector<EnergyRuleMatch>>();
@@ -66,7 +69,7 @@ public class PatternSet extends RuleSet {
     // method to lay down a template for a transformation rule
     void addTransformRule(RuleSyntax s) {
         String subject = s.getValue("s");
-        TransformRulePattern p = new TransformRulePattern(getPrefix(subject), s.getValue("d"), subject, s.getValue("t"), s.getValue("S"), s.getValue("T"), Double.parseDouble(s.getValue("p")), s.getValue("v"));
+        TransformPattern p = new TransformPattern(getPrefix(subject), s.getValue("d"), subject, s.getValue("t"), s.getValue("S"), s.getValue("T"), Double.parseDouble(s.getValue("p")), s.getValue("v"));
         if (s.hasValue("b"))
             p.addOptionalLhsBonds(s.getValue("b").split(" "));
 
@@ -93,7 +96,7 @@ public class PatternSet extends RuleSet {
 
         transformRulePattern.add(p);
         for (int d = 0; d < topology.neighborhoodSize(); ++d)
-            transformRuleMatch.get(d).add(new TransformRuleMatch(p, topology, d));
+            transformRuleMatch.get(d).add(new TransformMatcher(p, topology, d));
     }
 
     // method to lay down a template for an energy rule
@@ -128,15 +131,15 @@ public class PatternSet extends RuleSet {
     }
 
     // helper to get a set of transformation rules for a given Particle/direction
-    protected TransformRuleMatch[] getSourceTransformRules(String particleName, int dir) {
-        Vector<TransformRuleMatch> v = new Vector<TransformRuleMatch>();
-        Vector<TransformRuleMatch> w = transformRuleMatch.get(dir);
+    public TransformMatcher[] getSourceTransformRules(String particleName, int dir) {
+        Vector<TransformMatcher> v = new Vector<TransformMatcher>();
+        Vector<TransformMatcher> w = transformRuleMatch.get(dir);
         for (int n = 0; n < w.size(); ++n) {
-            TransformRuleMatch rm = w.get(n);
+            TransformMatcher rm = w.get(n);
             if (rm.matches(particleName))
                 v.add(rm);
         }
-        return (TransformRuleMatch[])v.toArray(new TransformRuleMatch[v.size()]);
+        return (TransformMatcher[])v.toArray(new TransformMatcher[v.size()]);
     }
 
     // helper to get bond energy for a given particle pair

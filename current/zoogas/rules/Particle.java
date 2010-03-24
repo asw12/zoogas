@@ -22,7 +22,7 @@ public class Particle implements Comparable {
 
     // transformation rules
     public ArrayList<HashMap<Particle, RandomVariable<UpdateEvent>>> transform = null; // production rules; array is indexed by neighbor direction, Map is indexed by Particle
-    protected TransformRuleMatch[][] transformRuleMatch = null; // generators for production rules; outer array is indexed by neighbor direction, inner array is the set of partially-bound rules for that direction
+    protected TransformMatcher[][] transformRuleMatch = null; // generators for production rules; outer array is indexed by neighbor direction, inner array is the set of partially-bound rules for that direction
     protected double[] transformRate = null; // sum of transformation regex rates, indexed by direction
     protected double totalTransformRate = 0; // sum of transformation regex rates in all directions
 
@@ -51,9 +51,9 @@ public class Particle implements Comparable {
         // init transformation rule patterns in each direction
         int N = board.neighborhoodSize();
         transform = new ArrayList<HashMap<Particle, RandomVariable<UpdateEvent>>>(N);
-        transformRuleMatch = new TransformRuleMatch[N][];
+        transformRuleMatch = new TransformMatcher[N][];
         transformRate = new double[N];
-
+        
         for (int n = 0; n < N; ++n) {
             transform.add(new HashMap<Particle, RandomVariable<UpdateEvent>>());
             transformRuleMatch[n] = patternSet.getSourceTransformRules(name, n);
@@ -169,7 +169,7 @@ public class Particle implements Comparable {
         RandomVariable<UpdateEvent> rv = new RandomVariable<UpdateEvent>();
         for (int n = 0; n < transformRuleMatch[dir].length; ++n) {
 
-            TransformRuleMatch rm = transformRuleMatch[dir][n];
+            TransformMatcher rm = transformRuleMatch[dir][n];
 
             if (rm.bindSource(name) && rm.bindTarget(target.name)) {
 
@@ -178,7 +178,7 @@ public class Particle implements Comparable {
                 String verb = rm.V();
                 double prob = rm.P() / transformRate[dir];
 
-                TransformRulePattern trp = rm.transformPattern();
+                TransformPattern trp = rm.transformPattern();
 
                 // we now have everything we need from rm
                 // therefore, unbind it so we can call getOrCreateParticle (which may re-bind and therefore corrupt it)
@@ -203,7 +203,7 @@ public class Particle implements Comparable {
     }
 
     // helpers to count number of compiled transformation rules
-    public int transformationRules() {
+    public int countTransformationRules() {
         int r = 0;
         for (HashMap<Particle, RandomVariable<UpdateEvent>> map : transform)
             r += map.size();

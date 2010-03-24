@@ -432,6 +432,8 @@ public class ZooGas implements KeyListener {
         // connect to server
         if (serverAddr != null)
             board.initClient(serverAddr);
+        
+        board.toXML("test.xml");
 
         // run
         gameLoop();
