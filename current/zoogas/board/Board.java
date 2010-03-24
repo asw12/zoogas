@@ -1,8 +1,22 @@
-import java.lang.*;
+package zoogas.board;
+
+import zoogas.board.topology.MooreTopology;
+
+import zoogas.gui.BoardRenderer;
+import zoogas.gui.ZooGas;
+
+import zoogas.network.BoardServer;
+import zoogas.network.ClientToServer;
+import zoogas.network.ConnectionServer;
+import zoogas.network.RemoteCellCoord;
+import zoogas.network.UpdateServer;
+
+import zoogas.rules.Particle;
+import zoogas.rules.ParticleSet;
+import zoogas.rules.PatternSet;
+import zoogas.rules.UpdateEvent;
 
 import java.util.*;
-
-import java.text.*;
 
 import java.awt.Color;
 import java.awt.image.*;
@@ -23,7 +37,7 @@ public class Board extends MooreTopology {
     private PatternSet patternSet = null;
 
     // particle name registry
-    protected Map<String, Particle> nameToParticle = new ConcurrentHashMap<String, Particle>(); // updated by Particle constructor
+    public Map<String, Particle> nameToParticle = new ConcurrentHashMap<String, Particle>(); // updated by Particle constructor
     protected Map<String, SortedSet<Particle>> prefixToParticles = new ConcurrentHashMap<String, SortedSet<Particle>>(); // updated by Particle constructor
 
     // off-board connections
@@ -31,8 +45,7 @@ public class Board extends MooreTopology {
 
     // networking
     private UpdateServer updateServer = null; // UpdateServer fields UDP requests for cross-border interactions
-    private ConnectionServer connectServer =
-        null; // ConnectionServer runs over TCP (otherwise requests to establish connections can get lost amongst the flood of UDP traffic)
+    private ConnectionServer connectServer = null; // ConnectionServer runs over TCP (otherwise requests to establish connections can get lost amongst the flood of UDP traffic)
     private int boardServerPort = 4444;
     private String localhost = null;
     private ClientToServer toWorldServer;
@@ -311,8 +324,7 @@ public class Board extends MooreTopology {
             }
 
             double energyBarrier = -bondEnergy(sourceCoords); // activation energy for a cross-border move involves breaking all local bonds
-            connectServer.sendEvolveDatagram(remoteCoords.addr, remoteCoords.port, remoteCoords.p, oldSourceState, sourceCoords, dir, energyBarrier, localhost,
-                                             boardServerPort, getCellWriteCount(sourceCoords));
+            connectServer.sendEvolveDatagram(remoteCoords.addr, remoteCoords.port, remoteCoords.p, oldSourceState, sourceCoords, dir, energyBarrier, localhost, boardServerPort, getCellWriteCount(sourceCoords));
         }
     }
 
@@ -414,8 +426,7 @@ public class Board extends MooreTopology {
     }
 
     // method to calculate the bond energy of two cells with given states and bonds, as well as the self-energies of the two particles.
-    public final double bondEnergy(Point p, Point q, Particle pState, Particle qState, Map<String, Point> pIn, Map<String, Point> pOut, Map<String, Point> qIn,
-                                   Map<String, Point> qOut) {
+    public final double bondEnergy(Point p, Point q, Particle pState, Particle qState, Map<String, Point> pIn, Map<String, Point> pOut, Map<String, Point> qIn, Map<String, Point> qOut) {
         // chain is n->p->q->r
         double E = 0;
         Point p2q = q.subtract(p);
@@ -458,7 +469,7 @@ public class Board extends MooreTopology {
     }
 
     // method returning a description of a cell neighborhood (including incoming & outgoing bonds) as a String
-    protected final String singleNeighborhoodDescription(Point p, boolean includeSelf) {
+    public final String singleNeighborhoodDescription(Point p, boolean includeSelf) {
         StringBuffer sb = new StringBuffer();
         if (includeSelf)
             sb.append(readCell(p).name);
@@ -478,8 +489,7 @@ public class Board extends MooreTopology {
 
     // method to send requests to establish two-way network connections between cells
     // (called in the client during initialization)
-    protected final void connectBorder(Point sourceStart, Point targetStart, Point lineVector, int lineLength, Point remoteOrigin,
-                                       InetSocketAddress remoteBoard) {
+    protected final void connectBorder(Point sourceStart, Point targetStart, Point lineVector, int lineLength, Point remoteOrigin, InetSocketAddress remoteBoard) {
         String[] connectRequests = new String[lineLength];
         Point source = new Point(sourceStart);
         Point target = new Point(targetStart);
@@ -500,7 +510,7 @@ public class Board extends MooreTopology {
         BoardServer.sendTCPPacket(remoteBoard.getAddress(), remoteBoard.getPort(), connectRequests);
     }
 
-    protected final void connectBorderInDirection(int dir, InetSocketAddress remote) {
+    public final void connectBorderInDirection(int dir, InetSocketAddress remote) {
         switch (dir) {
             case 0:
                 connectBorder(new Point(0, 127), new Point(0, 128), new Point(1, 0), 128, new Point(0, +size), remote); // north
@@ -517,7 +527,7 @@ public class Board extends MooreTopology {
         }
     }
 
-    protected final void addRemoteCellCoord(Point p, InetSocketAddress remoteBoard, Point pRemote) {
+    public final void addRemoteCellCoord(Point p, InetSocketAddress remoteBoard, Point pRemote) {
         Point q = new Point(p);
         Point r = new Point(p);
         remoteCell.put(q, new RemoteCellCoord(remoteBoard, pRemote));
@@ -531,7 +541,7 @@ public class Board extends MooreTopology {
     }
 
     // Particle name-indexing methods
-    protected final void registerParticle(Particle p) {
+    public final void registerParticle(Particle p) {
         nameToParticle.put(p.name, p);
         SortedSet<Particle> particles;
         if (!prefixToParticles.containsKey(p.prefix)) {
@@ -574,7 +584,7 @@ public class Board extends MooreTopology {
         return new HashSet<Particle>();
     }
 
-    protected final Particle getOrCreateParticle(String name) {
+    public final Particle getOrCreateParticle(String name) {
         return patternSet.getOrCreateParticle(name, this);
     }
 
@@ -607,7 +617,7 @@ public class Board extends MooreTopology {
     }
 
     // read from image
-    protected final void initFromImage(BufferedImage img, ParticleSet particleSet) {
+    public final void initFromImage(BufferedImage img, ParticleSet particleSet) {
         Set<Particle> ps = particleSet.getParticles(this);
 
         for (int x = 0; x < size; ++x)
@@ -636,7 +646,7 @@ public class Board extends MooreTopology {
     }
 
     // debug
-    String debugDumpStats() {
+    public String debugDumpStats() {
         int transRules = 0, outcomes = 0;
         for (Particle p : nameToParticle.values()) {
             transRules += p.transformationRules();

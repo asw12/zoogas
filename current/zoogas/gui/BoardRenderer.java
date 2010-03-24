@@ -1,4 +1,9 @@
-import java.awt.Image;
+package zoogas.gui;
+
+import zoogas.board.Point;
+
+import zoogas.rules.UpdateEvent;
+
 import java.awt.image.BufferedImage;
 
 public abstract class BoardRenderer {

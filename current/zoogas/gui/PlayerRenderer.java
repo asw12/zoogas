@@ -1,17 +1,24 @@
+package zoogas.gui;
+
+import zoogas.board.Board;
+import zoogas.board.Point;
+
+import zoogas.rules.UpdateEvent;
+
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-public class PlayerRenderer extends BoardRenderer{
+public class PlayerRenderer extends BoardRenderer {
     static double balloonRate = .0001;
 
-    PlayerRenderer (Board board, int size) {
+    PlayerRenderer(Board board, int size) {
         this.board = board;
         int pixelsPerSide = getBoardSize(size);
 
         image = new BufferedImage(pixelsPerSide, pixelsPerSide, BufferedImage.TYPE_3BYTE_BGR);
         bfGraphics = image.createGraphics();
     }
-    PlayerRenderer (ZooGas gas, Board board, int size) {
+    PlayerRenderer(ZooGas gas, Board board, int size) {
         this.board = board;
         this.gas = gas;
         int pixelsPerSide = getBoardSize(size);
@@ -36,7 +43,7 @@ public class PlayerRenderer extends BoardRenderer{
      * @param updateEvent
      */
     public void showVerb(UpdateEvent updateEvent) {
-	double showBalloonProbability = balloonRate / updateEvent.pattern.P;
+        double showBalloonProbability = balloonRate / updateEvent.pattern.P;
         if (gas.verbsSinceLastRefresh == 0) {
             if (gas.cheatPressed || updateEvent.visibleVerb().length() > 0) {
                 // check for duplicates

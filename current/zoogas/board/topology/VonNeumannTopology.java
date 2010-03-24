@@ -1,4 +1,6 @@
-import java.util.*;
+package zoogas.board.topology;
+
+import zoogas.board.Point;
 
 public class VonNeumannTopology extends Topology {
     // method to sample a random neighbor of a given cell, returning the directional index

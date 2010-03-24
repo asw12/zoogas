@@ -1,3 +1,7 @@
+package zoogas.network;
+
+import zoogas.board.Point;
+
 import java.awt.Rectangle;
 
 import java.io.IOException;
@@ -6,43 +10,42 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
 
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.ServerSocketChannel;
-
 import java.nio.channels.SocketChannel;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+
+import zoogas.gui.ZooGas;
+
+import zoogas.rules.RuleSet;
 
 /**
  * The main server that enables connections between players on a grid
  */
 public class WorldServer extends Thread {
-    public WorldServer() throws BindException{
+    public WorldServer() throws BindException {
         usedPorts = new HashMap<Integer, ServerToClient>();
         pointToClient = new HashMap<Point, ServerToClient>();
         clientLocation = new HashMap<ServerToClient, Point>();
         lastPinged = new HashMap<Integer, Long>();
-        
+
         clientParticles = new HashMap<ServerToClient, HashMap<Integer, List<Point>>>();
         try {
             incomingClientsSSC = ServerSocketChannel.open();
             incomingClientsSSC.socket().bind(new InetSocketAddress(newConnectionPort));
-        } catch (BindException e) {
+        }
+        catch (BindException e) {
             throw e;
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
-        
+
         ruleset = new RuleSet(ZooGas.defaultPatternSetFilename);
 
         start();
@@ -66,11 +69,11 @@ public class WorldServer extends Thread {
     RuleSet ruleset = null;
     // RSA check?
     // rules check (rules for rules?)
-    
-    private static enum ThreadStatus{
+
+    private static enum ThreadStatus {
         LOADING,
         CHECKING_IN,
-        READY
+        READY;
     }
 
     public void run() {
@@ -86,27 +89,31 @@ public class WorldServer extends Thread {
                     bb.flip();
                     sc.configureBlocking(true);
 
-                    
+
                     String newClientAdd = sc.socket().getInetAddress().getHostAddress();
                     if (newPort != ServerToClient.CONNECTIONS_FULL) {
                         System.out.println("New client " + newClientAdd + " on " + newPort);
                         new ServerToClient(new InetSocketAddress(newClientAdd, newPort), newPort, sc, bb);
                     }
-                } else {
+                }
+                else {
                     sleep(50);
                 }
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
-            } catch (InterruptedException e) {
+            }
+            catch (InterruptedException e) {
                 e.printStackTrace();
-            } finally {
+            }
+            finally {
             }
         }
     }
 
     public int getFirstUnusedPort() {
         for (int port = minPort; port <= maxPort; ++port) {
-            synchronized(usedPorts) {
+            synchronized (usedPorts) {
                 if (!usedPorts.containsKey(port)) {
                     usedPorts.put(port, null);
                     return port;
@@ -133,12 +140,12 @@ public class WorldServer extends Thread {
      * @return
      */
     public Rectangle getDimensions() {
-        if(getNumPlayers() < 10)
+        if (getNumPlayers() < 10)
             return new Rectangle(3, 3);
 
         return new Rectangle(1, 1);
     }
-    
+
     /**
      *After a client has joined, connect the borders of neighbors if any
      * @param newClientLoc
@@ -146,10 +153,9 @@ public class WorldServer extends Thread {
     public void addPeerToPeerConnections(ServerToClient client, Point newClientLoc) {
         Map<Integer, ServerToClient> neighbors = new HashMap<Integer, ServerToClient>();
 
-        for(int dir = 0; dir < 4; ++dir) {
+        for (int dir = 0; dir < 4; ++dir) {
             Point q = new Point(newClientLoc);
-            switch(dir)
-            {
+            switch (dir) {
                 case 0:
                     q.y++;
                     break;
@@ -163,24 +169,24 @@ public class WorldServer extends Thread {
                     q.x--;
                     break;
             }
-            if(pointToClient.containsKey(q))
+            if (pointToClient.containsKey(q))
                 neighbors.put(dir, pointToClient.get(q));
         }
-        
-        for(int dir : neighbors.keySet()) {
+
+        for (int dir : neighbors.keySet()) {
             // Tell peers how to connect borders
             ServerToClient peer = neighbors.get(dir);
             client.sendConnectPeer(peer, dir);
-            peer.sendConnectPeer(client, (dir+2)%4);
+            peer.sendConnectPeer(client, (dir + 2) % 4);
         }
     }
-    
+
     /**
      *Disconnect peer connections after a client has disconnected from this WorldServer
      * @param newClientLoc
      */
     public void dropPeerToPeerConnections(Point oldClientLoc) {
-        
+
     }
 
 
@@ -198,21 +204,22 @@ public class WorldServer extends Thread {
                 sc.write(bb);
                 sc.close();
                 System.out.println(" waiting for connection..." + port);
-                while(socketChannel == null) {
+                while (socketChannel == null) {
                     socketChannel = serverSocketChannel.accept();
-                    
-                    if(socketChannel != null) {
-                        if(!socketChannel.socket().getInetAddress().equals(clientAddress.getAddress())) {
+
+                    if (socketChannel != null) {
+                        if (!socketChannel.socket().getInetAddress().equals(clientAddress.getAddress())) {
                             System.err.println("Incoming connection (" + socketChannel.socket().getInetAddress() + ") on serverSocketChannel did not match the expected address: " + clientAddress.getAddress());
                             socketChannel = null;
                         }
                     }
                 }
 
-                System.out.println(" received connection... "+ port);
+                System.out.println(" received connection... " + port);
                 isConnected = true;
                 usedPorts.put(port, this);
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
 
@@ -234,16 +241,16 @@ public class WorldServer extends Thread {
                 socketChannel.configureBlocking(false);
                 while (socketChannel.isConnected()) {
                     ByteBuffer bb = ByteBuffer.allocate(allocateBufferSize);
-                    if(socketChannel.read(bb) > 0) {
+                    if (socketChannel.read(bb) > 0) {
                         processPacket(bb);
                         lastPinged.put(port, System.currentTimeMillis());
                     }
                     else {
                         Long last = lastPinged.get(port);
-                        if(last == null)
+                        if (last == null)
                             lastPinged.put(port, System.currentTimeMillis());
-                        else if(last < System.currentTimeMillis() - 5000) {
-                            if(getLocation() != null)
+                        else if (last < System.currentTimeMillis() - 5000) {
+                            if (getLocation() != null)
                                 sendRequestCurrentParticles();
                             else
                                 sendPing(); // Keep alive
@@ -252,14 +259,17 @@ public class WorldServer extends Thread {
                     }
                 }
 
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 //e.printStackTrace();
-            } finally {
+            }
+            finally {
                 try {
                     serverSocketChannel.close();
                     serverSocketChannel = null;
                     isConnected = false;
-                } catch (Exception e) {
+                }
+                catch (Exception e) {
                     e.printStackTrace();
                 }
             }
@@ -269,7 +279,7 @@ public class WorldServer extends Thread {
 
         protected void finalize() throws Throwable {
             super.finalize();
-            if(serverSocketChannel != null) {
+            if (serverSocketChannel != null) {
                 serverSocketChannel.close(); // TODO: close should be handled in run()
                 isConnected = false;
                 System.err.println("Warning: socket is being closed in WorldServer.finalize(), should be closed after run()");
@@ -278,13 +288,13 @@ public class WorldServer extends Thread {
             deregisterClient(this); // callback to deregister this thread (unreserve this port, etc.)
             System.out.println("Finalized thread listening on port " + port);
         }
-        
+
         /**
          *Returns the location of this client, or null if this client is not placed on the grid currently or is observing
          * @return
          */
         Point getLocation() {
-            if(!clientLocation.containsKey(this))
+            if (!clientLocation.containsKey(this))
                 return null;
             return clientLocation.get(this);
         }
@@ -296,16 +306,16 @@ public class WorldServer extends Thread {
             try {
                 command = packetCommand.values()[bb.getInt()];
             }
-            catch(ArrayIndexOutOfBoundsException e) {
+            catch (ArrayIndexOutOfBoundsException e) {
                 e.printStackTrace();
                 System.err.println(bb);
                 return;
             }
 
-            //System.out.println("Server Received " + command + " " + bb);            
+            //System.out.println("Server Received " + command + " " + bb);
             ArrayList<Object> parameters = collectParameters(command, bb);
 
-            switch(command) {
+            switch (command) {
                 case OBSERVE:
                     return;
                 case CLAIM_GRID:
@@ -350,13 +360,13 @@ public class WorldServer extends Thread {
             // send an x, y coordinate for every client:
             ByteBuffer bb = prepareBuffer(packetCommand.CURRENT_CLIENTS, 4 + (4 + 4) * pointToClient.size());
             bb.putInt(pointToClient.size());
-            for(Point p : pointToClient.keySet()) {
+            for (Point p : pointToClient.keySet()) {
                 bb.putInt(p.x);
                 bb.putInt(p.y);
             }
             verifyAndSend(bb, packetCommand.CURRENT_CLIENTS, socketChannel);
         }
-        
+
         private void sendRequestCurrentParticles() {
             ByteBuffer bb = prepareBuffer(packetCommand.REQUEST_PARTICLES);
             verifyAndSend(bb, packetCommand.REQUEST_PARTICLES, socketChannel);
@@ -366,7 +376,7 @@ public class WorldServer extends Thread {
             HashMap<Integer, List<Point>> sentParticles = new HashMap<Integer, List<Point>>();
             ServerToClient selectedClient = pointToClient.get(p);
             HashMap<Integer, List<Point>> particles = clientParticles.get(selectedClient);
-            for(Integer part : particles.keySet()) {
+            for (Integer part : particles.keySet()) {
                 ArrayList<Point> list = new ArrayList<Point>(particles.get(part));
                 //byteSize += part.getBytes().length + 1; // name
                 byteSize += 4; // color
@@ -374,30 +384,30 @@ public class WorldServer extends Thread {
                 byteSize += particles.get(part).size() * (4 + 4); // x,y coordinates
                 sentParticles.put(part, list);
             }
-            
+
             ByteBuffer bb = prepareBuffer(packetCommand.SEND_PARTICLES, byteSize);
             bb.putInt(sentParticles.size());
             //System.err.println("Observer is paging " + p);
             bb.putInt(p.x);
             bb.putInt(p.y);
-            for(Integer c : sentParticles.keySet()) {
+            for (Integer c : sentParticles.keySet()) {
                 //writeStringToBuffer(bb, part);
                 //bb.put((byte)(c & 0xFF));
                 //bb.put((byte)((c & 0xFF00) >> 8));
                 //bb.put((byte)((c & 0xFF0000) >> 16));
-                
+
                 bb.putInt(c);
-                
+
                 List<Point> list = sentParticles.get(c);
                 bb.putInt(list.size());
-                for(Point q : list) {
+                for (Point q : list) {
                     bb.putInt(q.x);
                     bb.putInt(q.y);
                 }
             }
             verifyAndSend(bb, packetCommand.SEND_PARTICLES, socketChannel);
         }
-        
+
         private void sendConnectPeer(ServerToClient neighbor, int dir) {
             ServerSocket socket = neighbor.serverSocketChannel.socket();
             String address = socket.getInetAddress().getHostAddress();
@@ -412,6 +422,7 @@ public class WorldServer extends Thread {
         }
 
         // Packet handlers
+
         /**
          *Tells the client its location on the World grid
          * @param args
@@ -419,9 +430,9 @@ public class WorldServer extends Thread {
         private void handleSetPlayerLoc(Object... args) {
             final Point requestedPoint = new Point((Integer)args[0], (Integer)args[1]);
             // atomic test and set block
-            synchronized(pointToClient) {
+            synchronized (pointToClient) {
                 // Another client is already there, do nothing
-                if(pointToClient.containsKey(requestedPoint))
+                if (pointToClient.containsKey(requestedPoint))
                     return;
 
                 pointToClient.put(requestedPoint, this);
@@ -432,11 +443,11 @@ public class WorldServer extends Thread {
             sendLaunch();
 
             // tell other observers a new client has connected
-            for(ServerToClient ct : usedPorts.values()){
-                if(ct != this && !clientLocation.containsKey(ct))
+            for (ServerToClient ct : usedPorts.values()) {
+                if (ct != this && !clientLocation.containsKey(ct))
                     ct.sendCurrentPlayerLocs();
             }
-            
+
             // TODO: send player locations
             addPeerToPeerConnections(this, requestedPoint);
         }
@@ -445,10 +456,10 @@ public class WorldServer extends Thread {
         // In-game methods
         private void handleCheckRules(ByteBuffer bb, Object... args) {
             int numRules = (Integer)args[0];
-            for(int i = 0; i < numRules; ++i) {
+            for (int i = 0; i < numRules; ++i) {
                 String s = getStringFromBuffer(bb);
-                if(s.length() > 0) {
-                    if(!ruleset.containsRules(s)) {
+                if (s.length() > 0) {
+                    if (!ruleset.containsRules(s)) {
                         System.err.println("Unknown rule " + s + " " + s.length());
                     }
                 }
@@ -460,15 +471,15 @@ public class WorldServer extends Thread {
             int color = (Integer)args[0];
             //HashMap<String, List<Point>> particleMap = new HashMap<String, List<Point>>();
             HashMap<Integer, List<Point>> particleMap = new HashMap<Integer, List<Point>>();
-            for(int i = 0; i < color; ++i) {
+            for (int i = 0; i < color; ++i) {
                 //String name = getStringFromBuffer(bb);
-                
+
                 //int c = (bb.get() << 16) | (bb.get() << 8) | bb.get();
                 int c = bb.getInt();
-                
+
                 ArrayList<Point> list = new ArrayList<Point>();
                 int numPoints = bb.getInt();
-                for(int j = 0; j < numPoints; ++j) {
+                for (int j = 0; j < numPoints; ++j) {
                     int x = bb.getInt();
                     int y = bb.getInt();
                     list.add(new Point(x, y));
@@ -480,11 +491,11 @@ public class WorldServer extends Thread {
         }
         private void handleRefreshObserved(Object... args) {
             Point p = new Point((Integer)args[0], (Integer)args[1]);
-            if(!pointToClient.containsKey(p)) {
+            if (!pointToClient.containsKey(p)) {
                 System.err.println("Observer is paging for a client that does not exist");
                 return;
             }
-            
+
             sendClientParticles(p);
         }
     }

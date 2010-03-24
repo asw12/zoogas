@@ -1,3 +1,5 @@
+package zoogas.board;
+
 import java.util.*;
 
 public class QuadTree {
@@ -55,7 +57,7 @@ public class QuadTree {
             p.y = (p.y << 1) | (whichChild >> 1);
             p.x = (p.x << 1) | (whichChild & 1);
         }
-        
+
         return p;
     }
 

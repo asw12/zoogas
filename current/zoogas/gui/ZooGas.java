@@ -1,3 +1,16 @@
+package zoogas.gui;
+
+import zoogas.board.Point;
+import zoogas.board.Board;
+
+import zoogas.network.ClientToServer;
+
+import zoogas.rules.Challenge;
+import zoogas.rules.Particle;
+import zoogas.rules.ParticleSet;
+
+import zoogas.tools.ToolBox;
+
 import java.awt.Color;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -6,7 +19,6 @@ import java.awt.Graphics;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
-import java.awt.Toolkit;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
@@ -32,12 +44,13 @@ import javax.swing.JPanel;
 import javax.swing.border.LineBorder;
 import javax.swing.event.MouseInputAdapter;
 
+import zoogas.rules.RuleMatch;
 
 public class ZooGas implements KeyListener {
 
     // command-line argument defaults
     static int defaultPort = 4444;
-    static String defaultPatternSetFilename = "ECOLOGY.txt", defaultToolboxFilename = "TOOLS.txt";
+    public static String defaultPatternSetFilename = "ECOLOGY.txt", defaultToolboxFilename = "TOOLS.txt";
     static int defaultBoardSize = 128;
     static int defaultTargetUpdateRate = 100;
 
@@ -45,7 +58,7 @@ public class ZooGas implements KeyListener {
     int size = defaultBoardSize;
 
     // board
-    Board board = null;
+    public Board board = null;
 
     // pattern set
     String patternSetFilename = defaultPatternSetFilename;
@@ -92,7 +105,7 @@ public class ZooGas implements KeyListener {
     JPanel boardPanel;
     JPanel toolBoxPanel;
     JPanel statusPanel;
-    BoardRenderer renderer;
+    public BoardRenderer renderer;
     int boardSize; // width & height of board in pixels
     int belowBoardHeight = 0; // size in pixels of whatever appears below the board -- currently unused but left as a placeholder
     int toolBarWidth = 100, toolLabelWidth = 200, toolHeight = 30; // size in pixels of various parts of the tool bar (right of the board)
@@ -131,7 +144,7 @@ public class ZooGas implements KeyListener {
     public static void main(String[] args, ClientToServer toWorldServer) {
         // create ZooGas object
         ZooGas gas = new ZooGas();
-        if(toWorldServer != null) {
+        if (toWorldServer != null) {
             gas.toWorldServer = toWorldServer;
             toWorldServer.setInterface(gas);
         }
@@ -145,7 +158,8 @@ public class ZooGas implements KeyListener {
         for (int i = 0; i < args.length; ++i) {
             if ("-s".equals(args[i]) || "--server".equals(args[i])) {
                 isServer = true;
-            } else if ("-c".equals(args[i]) || "--client".equals(args[i])) {
+            }
+            else if ("-c".equals(args[i]) || "--client".equals(args[i])) {
                 if (i + 1 >= args.length) {
                     System.err.println("Error: not enough parameters given");
                     System.err.println("-c/--client usage: [-c|--client] <remote address>[:<remote port>]");
@@ -154,7 +168,8 @@ public class ZooGas implements KeyListener {
                 }
                 socketAddress = args[++i];
                 isServer = isClient = true;
-            } else if ("-p".equals(args[i]) || "--port".equals(args[i])) {
+            }
+            else if ("-p".equals(args[i]) || "--port".equals(args[i])) {
                 if (i + 1 >= args.length) {
                     System.err.println("Error: not enough parameters given");
                     System.err.println("-p/--port usage: [-p|--port] <port>");
@@ -163,7 +178,8 @@ public class ZooGas implements KeyListener {
                 }
                 port = (new Integer(args[++i]));
                 isServer = true;
-            } else if ("-t".equals(args[i]) || "--tools".equals(args[i])) {
+            }
+            else if ("-t".equals(args[i]) || "--tools".equals(args[i])) {
                 if (i + 1 >= args.length) {
                     System.err.println("Error: no tools file specified");
                     System.err.println("-t/--tools usage: [-t|--tools] <tools file>");
@@ -171,7 +187,8 @@ public class ZooGas implements KeyListener {
                     return;
                 }
                 gas.toolboxFilename = args[++i];
-            } else if ("-r".equals(args[i]) || "--rules".equals(args[i])) {
+            }
+            else if ("-r".equals(args[i]) || "--rules".equals(args[i])) {
                 if (i + 1 >= args.length) {
                     System.err.println("Error: no rules file specified");
                     System.err.println("-r/--rules usage: [-r|--rules] <rules file>");
@@ -179,7 +196,8 @@ public class ZooGas implements KeyListener {
                     return;
                 }
                 gas.patternSetFilename = args[++i];
-            } else if ("-u".equals(args[i]) || "--updates".equals(args[i])) {
+            }
+            else if ("-u".equals(args[i]) || "--updates".equals(args[i])) {
                 if (i + 1 >= args.length) {
                     System.err.println("Error: no update rate parameter specified");
                     System.err.println("-u/--updates usage: [-u|--updates] <target update rate>");
@@ -187,7 +205,8 @@ public class ZooGas implements KeyListener {
                     return;
                 }
                 gas.targetUpdateRate = Integer.parseInt(args[++i]);
-            } else if ("-?".equals(args[i]) || "-h".equals(args[i]) || "--help".equals(args[i])) {
+            }
+            else if ("-?".equals(args[i]) || "-h".equals(args[i]) || "--help".equals(args[i])) {
                 System.err.println("Usage: <progname> [<option> [<args>]]");
                 System.err.println("Valid options:");
                 System.err.println("\t[-c|--client <remote address>[:<remote port>]]");
@@ -200,7 +219,8 @@ public class ZooGas implements KeyListener {
                 System.err.println("\t[-?|-h|--help]       - Display this very useful help message");
                 System.exit(0);
                 return;
-            } else {
+            }
+            else {
                 // Unknown option
                 System.err.println("Error: Unknown option: " + args[i]);
                 System.exit(0);
@@ -213,18 +233,18 @@ public class ZooGas implements KeyListener {
         if (isServer) // start as server
             gas.board.initServer(port, gas);
 
-	InetSocketAddress serverAddr = null;
-	if (isClient) // start as client (and server)
-	{
-	    String[] address = socketAddress.split(":");
-	    if(address.length > 1) {
-	        serverAddr = new InetSocketAddress(address[0], new Integer(address[1]));
-	    }
-	    else {
-	        serverAddr = new InetSocketAddress(address[0], defaultPort);
-	    }
-	}
-        
+        InetSocketAddress serverAddr = null;
+        if (isClient) // start as client (and server)
+        {
+            String[] address = socketAddress.split(":");
+            if (address.length > 1) {
+                serverAddr = new InetSocketAddress(address[0], new Integer(address[1]));
+            }
+            else {
+                serverAddr = new InetSocketAddress(address[0], defaultPort);
+            }
+        }
+
         gas.board.loadPatternSetFromFile(gas.patternSetFilename);
         gas.start(serverAddr);
     }
@@ -234,10 +254,9 @@ public class ZooGas implements KeyListener {
         board = new Board(size);
     }
 
-    public void start(InetSocketAddress serverAddr)
-    {
-	// set helpers, etc.
-	boardSize = board.getBoardSize(size,renderer.pixelsPerCell);
+    public void start(InetSocketAddress serverAddr) {
+        // set helpers, etc.
+        boardSize = board.getBoardSize(size, renderer.pixelsPerCell);
 
         spaceParticle = board.getOrCreateParticle(spaceParticleName);
 
@@ -248,12 +267,14 @@ public class ZooGas implements KeyListener {
                 ParticleSet imgParticle = ParticleSet.fromFile(initParticleFilename);
                 board.initFromImage(img, imgParticle);
 
-            } catch (IOException e) {
+            }
+            catch (IOException e) {
                 e.printStackTrace();
             }
-        } else {
+        }
+        else {
             board.fill(spaceParticle);
-            String initParticleName = initParticlePrefix + '/' + RuleMatch.int2string(size / 2);
+            String initParticleName = initParticlePrefix + '/' + String.valueOf(size / 2);
             Particle initParticle = board.getOrCreateParticle(initParticleName);
             if (initParticle == null)
                 throw new RuntimeException("Initialization particle " + initParticleName + " not found");
@@ -266,24 +287,24 @@ public class ZooGas implements KeyListener {
 
         // init objective
 
-	// TODO: create the following challenge sequence:
-	// - place 5 animals
-	// - place 5 guests
-	// - create an enclosure
-	// - while keeping at least 5 guests alive, do each of the following:
-	//  - (once only) get animal population over 100
-	//  - (for at least 30 seconds) maintain species diversity at ~2.9 species or better, i.e. keep entropy of species distribution above log(2.9)
-	//  - (for at least 30 seconds) maintain species diversity at ~3.9 species or better, i.e. keep entropy of species distribution above log(3.9)
-	// - keep at least 5 guests alive, and species diversity at ~3.9 or better, while the computer makes your life hell by...
-	//  - spraying a random burst of animals around a random location in the zoo every 10 seconds
-	//  - spraying a low-intensity acid storm all over the zoo
-	//  - a volcano erupts at a random location in the zoo, pouring lava everywhere
-	//  - one of your zoo guests starts spraying perfume everywhere
-	//  - one of your zoo guests turns into a terrorist, throwing bombs all over the place
+        // TODO: create the following challenge sequence:
+        // - place 5 animals
+        // - place 5 guests
+        // - create an enclosure
+        // - while keeping at least 5 guests alive, do each of the following:
+        //  - (once only) get animal population over 100
+        //  - (for at least 30 seconds) maintain species diversity at ~2.9 species or better, i.e. keep entropy of species distribution above log(2.9)
+        //  - (for at least 30 seconds) maintain species diversity at ~3.9 species or better, i.e. keep entropy of species distribution above log(3.9)
+        // - keep at least 5 guests alive, and species diversity at ~3.9 or better, while the computer makes your life hell by...
+        //  - spraying a random burst of animals around a random location in the zoo every 10 seconds
+        //  - spraying a low-intensity acid storm all over the zoo
+        //  - a volcano erupts at a random location in the zoo, pouring lava everywhere
+        //  - one of your zoo guests starts spraying perfume everywhere
+        //  - one of your zoo guests turns into a terrorist, throwing bombs all over the place
 
 
-	// TODO: challenges should be able provide challenge-specific scores, feedback and rewards;
-	// e.g. (at a minimum) the diversity scores and particle counts that are currently displayed.
+        // TODO: challenges should be able provide challenge-specific scores, feedback and rewards;
+        // e.g. (at a minimum) the diversity scores and particle counts that are currently displayed.
 
 
         // hackish test cases (kept here for reference)
@@ -298,31 +319,31 @@ public class ZooGas implements KeyListener {
         // place 5 animals anywhere
         // objective = new Challenge(board, new Challenge.EncloseParticles(5, "critter/.*", board));
 
-	// init hints
-	String specialKeys = "Special keys: "+cheatKey+" (reveal state) "+slowKey+" (reveal bonds) "+stopKey+" (freeze)";
-	hints.add ("Deputy Head Zookeeper, Celia O'Tuamata.");
-	hints.add ("Make a zoo using the tools in your Toolbox (left).");
-	hints.add ("Select a tool by clicking, or press its hot-key.");
-	hints.add ("Try building a cage.");
-	if (toolBox.tool.size() > 0)
-	    hints.add ("Press \"" + toolBox.tool.get(0).hotKey + "\" to select " + toolBox.tool.get(0).particleName + "; etc.");
-	hints.add ("Click on the board to use the currently selected tool.");
-	hints.add ("Hold down the tool hotkey with the mouse over the board.");
-	if (toolBox.tool.size() > 0)
-	    hints.add ("Mouseover the board & hold \"" + toolBox.tool.get(0).hotKey + "\" to spray " + toolBox.tool.get(0).particleName + " pixels; etc.");
-	hints.add ("Use cage-builders to get your zoo started.");
-	hints.add ("Next to each tool is a bar showing the reserve.");
-	hints.add ("If you mouseover a pixel on the board, its name appears.");
-	hints.add ("When you build a cage, it contains a few animals.");
-	hints.add (specialKeys);
-	hints.add ("The \""+cheatKey+"\" key reveals the hidden state of a pixel.");
-	hints.add (specialKeys);
-	hints.add ("The \""+cheatKey+"\" key reveals outgoing(>) and incoming(<) bonds.");
-	hints.add ("The \""+stopKey+"\" key stops all action on the board.");
-	hints.add ("Keep cage walls in good repair, or animals will escape.");
-	hints.add (specialKeys);
-	hints.add ("The \""+cheatKey+"\" key reveals the number of pixels in existence.");
-	hints.add ("The \""+slowKey+"\" key draws bonds on the board.");
+        // init hints
+        String specialKeys = "Special keys: " + cheatKey + " (reveal state) " + slowKey + " (reveal bonds) " + stopKey + " (freeze)";
+        hints.add("Deputy Head Zookeeper, Celia O'Tuamata.");
+        hints.add("Make a zoo using the tools in your Toolbox (left).");
+        hints.add("Select a tool by clicking, or press its hot-key.");
+        hints.add("Try building a cage.");
+        if (toolBox.tools.size() > 0)
+            hints.add("Press \"" + toolBox.tools.get(0).hotKey + "\" to select " + toolBox.tools.get(0).particleName + "; etc.");
+        hints.add("Click on the board to use the currently selected tool.");
+        hints.add("Hold down the tool hotkey with the mouse over the board.");
+        if (toolBox.tools.size() > 0)
+            hints.add("Mouseover the board & hold \"" + toolBox.tools.get(0).hotKey + "\" to spray " + toolBox.tools.get(0).particleName + " pixels; etc.");
+        hints.add("Use cage-builders to get your zoo started.");
+        hints.add("Next to each tool is a bar showing the reserve.");
+        hints.add("If you mouseover a pixel on the board, its name appears.");
+        hints.add("When you build a cage, it contains a few animals.");
+        hints.add(specialKeys);
+        hints.add("The \"" + cheatKey + "\" key reveals the hidden state of a pixel.");
+        hints.add(specialKeys);
+        hints.add("The \"" + cheatKey + "\" key reveals outgoing(>) and incoming(<) bonds.");
+        hints.add("The \"" + stopKey + "\" key stops all action on the board.");
+        hints.add("Keep cage walls in good repair, or animals will escape.");
+        hints.add(specialKeys);
+        hints.add("The \"" + cheatKey + "\" key reveals the number of pixels in existence.");
+        hints.add("The \"" + slowKey + "\" key draws bonds on the board.");
 
         // init JFrame
         zooGasFrame = new JFrame("ZooGas");
@@ -338,8 +359,8 @@ public class ZooGas implements KeyListener {
                         drawBonds(g);
                         drawEnclosures(g);
                     }
-		    drawVerbs(g);
-		    drawCursorNoun(g);
+                    drawVerbs(g);
+                    drawCursorNoun(g);
                 }
             };
         toolBoxPanel = new JPanel() {
@@ -386,7 +407,7 @@ public class ZooGas implements KeyListener {
         // create cursors
         boardCursor = new Cursor(Cursor.HAND_CURSOR);
         normalCursor = new Cursor(Cursor.DEFAULT_CURSOR);
-        
+
         // register for mouse & keyboard events
         BoardMouseAdapter boardMouse = new BoardMouseAdapter();
         boardPanel.addMouseListener(boardMouse);
@@ -398,7 +419,7 @@ public class ZooGas implements KeyListener {
             }
         };
         toolBoxPanel.addMouseListener(toolsMouse);
-         
+
         MouseListener statusMouse = new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 hintBrightness = initialHintBrightness;
@@ -408,12 +429,12 @@ public class ZooGas implements KeyListener {
         statusPanel.addMouseListener(statusMouse);
         zooGasFrame.addKeyListener(this);
 
-	// connect to server
-	if (serverAddr != null)
-	    board.initClient(serverAddr);
+        // connect to server
+        if (serverAddr != null)
+            board.initClient(serverAddr);
 
-	// run
-	gameLoop();
+        // run
+        gameLoop();
     }
 
     // main game loop
@@ -455,7 +476,8 @@ public class ZooGas implements KeyListener {
                     Thread.currentThread().sleep(targetTimePerUpdate - timeDiff);
                 }
             }
-        } catch (InterruptedException e) {
+        }
+        catch (InterruptedException e) {
         }
     }
 
@@ -482,16 +504,17 @@ public class ZooGas implements KeyListener {
                 toolBox.currentTool.spray(cursorPos, board, renderer, spaceParticle);
                 return;
             }
-        } else
+        }
+        else
             zooGasFrame.setCursor(normalCursor);
 
         toolBox.refill(1);
     }
-    
+
     public ClientToServer getWorldServerThread() {
         return toWorldServer;
     }
-    
+
     /**
      *Refreshes the buffer of the ZooGas frame
      */
@@ -560,181 +583,162 @@ public class ZooGas implements KeyListener {
         // current objective
         if (objective != null)
             printOrHide(g, "Goal: " + objective.getDescription(), objectiveRow, true, Color.white);
-	else {
-	    // until we get challenges working properly, just display an auto-rotating hint and a few feedback scores
+        else {
+            // until we get challenges working properly, just display an auto-rotating hint and a few feedback scores
 
-	    // current hint
-	    hintBrightness -= hintDecayRate;
-	    if (hintBrightness < 0) {
-		hintBrightness = initialHintBrightness;
-		currentHint = (currentHint + 1) % hints.size();
-	    }
-	    
-	    Color hintColor = new Color ((int) hintBrightness, (int) hintBrightness, 0);
-	    printOrHide(g, hints.elementAt(currentHint), hintRow, true, hintColor);
+            // current hint
+            hintBrightness -= hintDecayRate;
+            if (hintBrightness < 0) {
+                hintBrightness = initialHintBrightness;
+                currentHint = (currentHint + 1) % hints.size();
+            }
 
-	    // quick, hacky feedback scores on population stats - to be replaced by more generic challenges (which may incorporate these scores)
-	    String guestName = "zoo_guest";
-	    String critterPrefix = "critter";
-	    int targetGuests = 10;
-	    int targetCritters = 100;
-	    double targetDiversity = 3.5;
+            Color hintColor = new Color((int)hintBrightness, (int)hintBrightness, 0);
+            printOrHide(g, hints.elementAt(currentHint), hintRow, true, hintColor);
 
-	    Particle guestParticle = board.getParticleByName(guestName);
-	    int totalGuests = guestParticle==null ? 0 : guestParticle.getReferenceCount();
-	    String guestString = "Guests: " + String.format("% 2d", totalGuests) + (totalGuests < targetGuests
-							     ? (" (goal: " + targetGuests + ")")
-							     : "");
+            // quick, hacky feedback scores on population stats - to be replaced by more generic challenges (which may incorporate these scores)
+            String guestName = "zoo_guest";
+            String critterPrefix = "critter";
+            int targetGuests = 10;
+            int targetCritters = 100;
+            double targetDiversity = 3.5;
 
-	    int totalCritters = 0;
-	    double diversityScore = 0;
-	    if (board.gotPrefix(critterPrefix)) {
-		Set<Particle> critters = board.getParticlesByPrefix(critterPrefix);
-		if (critters != null) {
-		    for (Particle critter : critters)
-			totalCritters += critter.getReferenceCount();
-		    double entropy = 0;
-		    for (Particle critter : critters) {
-			double p = ((double) critter.getReferenceCount()) / (double) totalCritters;
-			if (p > 0)
-			    entropy -= p * Math.log(p);
-		    }
-		    diversityScore = Math.exp(entropy);
-		}
-	    }
+            Particle guestParticle = board.getParticleByName(guestName);
+            int totalGuests = guestParticle == null ? 0 : guestParticle.getReferenceCount();
+            String guestString = "Guests: " + String.format("% 2d", totalGuests) + (totalGuests < targetGuests ? (" (goal: " + targetGuests + ")") : "");
 
-	    String popString = "Animals: " + String.format("% 3d", totalCritters) + (totalCritters < targetCritters
-										     ? (" (goal: " + targetCritters + ")")
-										     : "");
+            int totalCritters = 0;
+            double diversityScore = 0;
+            if (board.gotPrefix(critterPrefix)) {
+                Set<Particle> critters = board.getParticlesByPrefix(critterPrefix);
+                if (critters != null) {
+                    for (Particle critter : critters)
+                        totalCritters += critter.getReferenceCount();
+                    double entropy = 0;
+                    for (Particle critter : critters) {
+                        double p = ((double)critter.getReferenceCount()) / (double)totalCritters;
+                        if (p > 0)
+                            entropy -= p * Math.log(p);
+                    }
+                    diversityScore = Math.exp(entropy);
+                }
+            }
 
-	    String divString = totalCritters < targetCritters
-		? ""
-		: (", diversity: " + String.format("%.2f", diversityScore) + (diversityScore < targetDiversity
-									      ? (" (goal: " + targetDiversity + ")")
-									      : ""));
+            String popString = "Animals: " + String.format("% 3d", totalCritters) + (totalCritters < targetCritters ? (" (goal: " + targetCritters + ")") : "");
+
+            String divString = totalCritters < targetCritters ? "" : (", diversity: " + String.format("%.2f", diversityScore) + (diversityScore < targetDiversity ? (" (goal: " + targetDiversity + ")") : ""));
             printOrHide(g, guestString, objectiveRow, true, Color.green);
             printOrHide(g, popString + divString, objectiveRow + 1, true, Color.green);
-	}
+        }
 
         // update rate and other stats
         StringBuilder sb = new StringBuilder();
         Formatter formatter = new Formatter(sb, Locale.US);
         Runtime runtime = Runtime.getRuntime();
         printOrHide(g, lastDumpStats, updatesRow, true, new Color(48, 48, 0));
-        printOrHide(g, "Heap: current " + kmg(runtime.totalMemory()) + ", max " + kmg(runtime.maxMemory()) + ", free " + kmg(runtime.freeMemory()),
-                    updatesRow + 1, true, new Color(48, 48, 0));
+        printOrHide(g, "Heap: current " + kmg(runtime.totalMemory()) + ", max " + kmg(runtime.maxMemory()) + ", free " + kmg(runtime.freeMemory()), updatesRow + 1, true, new Color(48, 48, 0));
         printOrHide(g, formatter.format("Updates/sec: %.2f", updatesPerSecond).toString(), updatesRow + 2, true, new Color(64, 64, 0));
     }
 
     protected void drawVerbs(Graphics g) {
-	// display params
-	int maxAge = 100;
-	boolean writeNouns = false;
-	int verbBalloonBorder = 2;
-	int bubbleLines = writeNouns ? 2 : 1;
+        // display params
+        int maxAge = 100;
+        boolean writeNouns = false;
+        int verbBalloonBorder = 2;
+        int bubbleLines = writeNouns ? 2 : 1;
 
-	// font
+        // font
         FontMetrics fm = g.getFontMetrics();
 
-	// loop over verb history
+        // loop over verb history
         for (int vpos = 0; vpos < verbHistoryLength; ++vpos) {
             int v = (verbHistoryPos + verbHistoryLength - vpos) % verbHistoryLength;
 
             if (verbHistory[v] != null) {
-		if (verbHistoryAge[v]++ >= maxAge)
-		    verbHistory[v] = null;
-		else {
-		    String nounText = cheatPressed ? nounHistory[v].name : nounHistory[v].visibleName();
-		    String verbText = cheatPressed ? verbHistory[v] : Particle.visibleText(verbHistory[v]);
-		    Color verbColor = nounHistory[v].color;
+                if (verbHistoryAge[v]++ >= maxAge)
+                    verbHistory[v] = null;
+                else {
+                    String nounText = cheatPressed ? nounHistory[v].name : nounHistory[v].visibleName();
+                    String verbText = cheatPressed ? verbHistory[v] : Particle.visibleText(verbHistory[v]);
+                    Color verbColor = nounHistory[v].color;
 
-		    String[] text = new String[bubbleLines];
-		    Color[] textColor = new Color[bubbleLines];
+                    String[] text = new String[bubbleLines];
+                    Color[] textColor = new Color[bubbleLines];
 
-		    text[0] = verbText;
-		    textColor[0] = verbColor;
+                    text[0] = verbText;
+                    textColor[0] = verbColor;
 
-		    if (writeNouns) {
-			text[1] = nounText;
-			textColor[1] = verbColor;
-		    }
+                    if (writeNouns) {
+                        text[1] = nounText;
+                        textColor[1] = verbColor;
+                    }
 
-		    drawSpeechBalloon (g, placeHistory[v], 0., -1., verbBalloonBorder, text, textColor, verbColor, Color.black);
-		}
-	    }
-	}
+                    drawSpeechBalloon(g, placeHistory[v], 0., -1., verbBalloonBorder, text, textColor, verbColor, Color.black);
+                }
+            }
+        }
 
-	if (++verbHistoryRefreshCounter >= verbHistoryRefreshPeriod)
-	    verbsSinceLastRefresh = verbHistoryRefreshCounter = 0;
+        if (++verbHistoryRefreshCounter >= verbHistoryRefreshPeriod)
+            verbsSinceLastRefresh = verbHistoryRefreshCounter = 0;
     }
 
     protected void drawCursorNoun(Graphics g) {
-	int nounBalloonBorder = 2;
+        int nounBalloonBorder = 2;
         if (board.onBoard(cursorPos)) {
             Particle cursorParticle = board.readCell(cursorPos);
             boolean isSpace = cursorParticle == spaceParticle;
 
-            String nameToShow =
-                cheatPressed ? cursorParticle.name + " (" + cursorParticle.getReferenceCount() + ")" + board.singleNeighborhoodDescription(cursorPos, false) :
-                cursorParticle.visibleName();
+            String nameToShow = cheatPressed ? cursorParticle.name + " (" + cursorParticle.getReferenceCount() + ")" + board.singleNeighborhoodDescription(cursorPos, false) : cursorParticle.visibleName();
 
-	    if (nameToShow.length() > 0) {
-		Color fgCurs = cursorParticle == null ? Color.white : cursorParticle.color;
-		Color bgCurs = cheatPressed ? new Color(255 - fgCurs.getRed(), 255 - fgCurs.getGreen(), 255 - fgCurs.getBlue()) : Color.black;
+            if (nameToShow.length() > 0) {
+                Color fgCurs = cursorParticle == null ? Color.white : cursorParticle.color;
+                Color bgCurs = cheatPressed ? new Color(255 - fgCurs.getRed(), 255 - fgCurs.getGreen(), 255 - fgCurs.getBlue()) : Color.black;
 
-		String[] text = new String[1];
-		Color[] textColor = new Color[1];
+                String[] text = new String[1];
+                Color[] textColor = new Color[1];
 
-		text[0] = nameToShow;
-		textColor[0] = bgCurs;
+                text[0] = nameToShow;
+                textColor[0] = bgCurs;
 
-		drawSpeechBalloon (g, cursorPos, 0., +3., nounBalloonBorder, text, textColor, null, fgCurs);
-	    }
-	}
+                drawSpeechBalloon(g, cursorPos, 0., +3., nounBalloonBorder, text, textColor, null, fgCurs);
+            }
+        }
     }
 
     // TODO: drawSpeechBalloon should detect cases where the speech balloon is out of the Panel's paintable area, and adjust its position accordingly
-    protected void drawSpeechBalloon (Graphics g, Point cell, double xOffset, double yOffset, int balloonBorder, String[] text, Color[] textColor, Color balloonColor, Color bgColor) {
+    protected void drawSpeechBalloon(Graphics g, Point cell, double xOffset, double yOffset, int balloonBorder, String[] text, Color[] textColor, Color balloonColor, Color bgColor) {
         FontMetrics fm = g.getFontMetrics();
 
-	int xSize = 0,
-	    ySize = fm.getHeight();
+        int xSize = 0, ySize = fm.getHeight();
 
-	for (int n = 0; n < text.length; ++n) {
-	    xSize = Math.max (xSize, fm.stringWidth(text[n]));
-	}
+        for (int n = 0; n < text.length; ++n) {
+            xSize = Math.max(xSize, fm.stringWidth(text[n]));
+        }
 
-	java.awt.Point cellGraphicsCoords = renderer.getGraphicsCoords(cell);
+        java.awt.Point cellGraphicsCoords = renderer.getGraphicsCoords(cell);
 
-	int xPos = cellGraphicsCoords.x + (int) (xSize * (xOffset - 0.5)),
-	    yPos = cellGraphicsCoords.y + (int) (ySize * yOffset);
+        int xPos = cellGraphicsCoords.x + (int)(xSize * (xOffset - 0.5)), yPos = cellGraphicsCoords.y + (int)(ySize * yOffset);
 
-	// draw speech balloon
-	int yTextSize = ySize * text.length;
+        // draw speech balloon
+        int yTextSize = ySize * text.length;
 
-	if (balloonColor != null) {
-	    g.setColor(balloonColor);
-	    g.drawLine(xPos, yPos, cellGraphicsCoords.x, cellGraphicsCoords.y);
-	}
+        if (balloonColor != null) {
+            g.setColor(balloonColor);
+            g.drawLine(xPos, yPos, cellGraphicsCoords.x, cellGraphicsCoords.y);
+        }
 
-	g.setColor(bgColor);
-	g.fillRect(xPos - balloonBorder,
-		   yPos - yTextSize - balloonBorder,
-		   xSize + 2*balloonBorder,
-		   yTextSize + 2*balloonBorder);
+        g.setColor(bgColor);
+        g.fillRect(xPos - balloonBorder, yPos - yTextSize - balloonBorder, xSize + 2 * balloonBorder, yTextSize + 2 * balloonBorder);
 
-	for (int n = 0; n < text.length; ++n) {
-	    g.setColor(textColor[n]);
-	    g.drawString(text[n], xPos, yPos - ySize*n);
-	}
+        for (int n = 0; n < text.length; ++n) {
+            g.setColor(textColor[n]);
+            g.drawString(text[n], xPos, yPos - ySize * n);
+        }
 
-	if (balloonColor != null) {
-	    g.setColor(balloonColor);
-	    g.drawRect(xPos - balloonBorder,
-		       yPos - yTextSize - balloonBorder,
-		       xSize + 2*balloonBorder,
-		       yTextSize + 2*balloonBorder);
-	}
+        if (balloonColor != null) {
+            g.setColor(balloonColor);
+            g.drawRect(xPos - balloonBorder, yPos - yTextSize - balloonBorder, xSize + 2 * balloonBorder, yTextSize + 2 * balloonBorder);
+        }
 
     }
 
@@ -745,8 +749,7 @@ public class ZooGas implements KeyListener {
     }
 
     static String kmg(long bytes) {
-        return bytes < 1024 ? (bytes + "B") :
-               (bytes < 1048576 ? (bytes / 1024 + "K") : (bytes < 1073741824 ? (bytes / 1048576 + "M") : bytes / 1073741824 + "G"));
+        return bytes < 1024 ? (bytes + "B") : (bytes < 1048576 ? (bytes / 1024 + "K") : (bytes < 1073741824 ? (bytes / 1048576 + "M") : bytes / 1073741824 + "G"));
     }
 
     private void flashOrHide(Graphics g, String text, int row, boolean show, int minTime, int maxTime, boolean onceOnly, Color color) {
@@ -759,11 +762,10 @@ public class ZooGas implements KeyListener {
             else {
                 long timeSinceFirstTrue = boardUpdateCount - timeFirstTrue[row];
                 long flashesSinceFirstTrue = (timeSinceFirstTrue - minTime) / flashPeriod;
-                reallyShow =
-                        timeSinceFirstTrue >= minTime && (maxTime < 0 || timeSinceFirstTrue <= maxTime) && ((flashesSinceFirstTrue > 2 * flashes) || (flashesSinceFirstTrue %
-                                                                                                                                                      2 == 0));
+                reallyShow = timeSinceFirstTrue >= minTime && (maxTime < 0 || timeSinceFirstTrue <= maxTime) && ((flashesSinceFirstTrue > 2 * flashes) || (flashesSinceFirstTrue % 2 == 0));
             }
-        } else if (!onceOnly)
+        }
+        else if (!onceOnly)
             timeFirstTrue[row] = 0;
 
         if (reallyShow || currentlyShown)
@@ -849,7 +851,7 @@ public class ZooGas implements KeyListener {
                         System.err.println(ss);
                     break;
                 case '`':
-                    if(statusPanel.isVisible()) {
+                    if (statusPanel.isVisible()) {
                         statusPanel.setVisible(false);
                         toolBoxPanel.setVisible(false);
                     }
@@ -866,15 +868,15 @@ public class ZooGas implements KeyListener {
     public void keyReleased(KeyEvent e) {
         mouseDown = false;
         switch (e.getKeyChar()) {
-        case cheatKey:
-            cheatPressed = false;
-            break;
-        case stopKey:
-            stopPressed = false;
-            break;
-        case slowKey:
-            slowPressed = false;
-            break;
+            case cheatKey:
+                cheatPressed = false;
+                break;
+            case stopKey:
+                stopPressed = false;
+                break;
+            case slowKey:
+                slowPressed = false;
+                break;
         }
     }
 }
