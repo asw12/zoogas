@@ -45,7 +45,7 @@ public class WorldServer extends Thread {
             e.printStackTrace();
         }
 
-        ruleset = new RuleSet(ZooGas.defaultPatternSetFilename);
+        ruleset = new RuleSet(ZooGas.dataDir + ZooGas.defaultPatternSetFilename);
 
         start();
     }

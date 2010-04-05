@@ -213,13 +213,14 @@ public class PatternSet extends RuleSet {
     }
 
     public static PatternSet fromFile(String filename, Topology topology) {
+        InputStream fis = null;
         try {
-            FileInputStream fis = new FileInputStream(filename);
-            return fromStream(fis, topology);
+            fis = new FileInputStream(filename);
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        catch (FileNotFoundException e) {
+            fis = ClassLoader.getSystemClassLoader().getResourceAsStream(filename);
         }
-        return null;
+
+        return fromStream(fis, topology);
     }
 }

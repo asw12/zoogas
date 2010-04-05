@@ -1,6 +1,9 @@
 # source directory
 SOURCE_DIR = src/
 
+# data directory
+DATA_DIR = data/
+
 # branch directories
 DIRS := zoogas zoogas/gui zoogas/network zoogas/core zoogas/core/rules zoogas/core/topology
 
@@ -42,6 +45,7 @@ clean:
 
 $(MAINCLASSFILES): $(CLASSES_DIR)
 	$(JAVAC) $(SOURCE_DIR)$(ZOOGAS).java
+	cp -R -f $(DATA_DIR) $(CLASSES_DIR)
 
 $(CLASSES_DIR):
 	mkdir classes

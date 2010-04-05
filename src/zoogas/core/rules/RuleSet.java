@@ -2,7 +2,9 @@ package zoogas.core.rules;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 import java.util.HashMap;
@@ -24,25 +26,27 @@ public class RuleSet {
     public RuleSet(String filename) {
         this();
 
+        InputStream fis = null;
         try {
-            FileInputStream fis = new FileInputStream(filename);
-            InputStreamReader read = new InputStreamReader(fis);
-            BufferedReader buff = new BufferedReader(read);
-            try {
-                while (buff.ready()) {
-                    String s = buff.readLine();
+            fis = new FileInputStream(filename);
+        }
+        catch (FileNotFoundException e) {
+            fis = ClassLoader.getSystemClassLoader().getResourceAsStream(filename);
+        }
 
-                    if (isRule(s)) {
-                        ruleLines.add(s);
-                        byteSize += 1 + s.getBytes().length;
-                    }
+        InputStreamReader read = new InputStreamReader(fis);
+        BufferedReader buff = new BufferedReader(read);
+        try {
+            while (buff.ready()) {
+                String s = buff.readLine();
+
+                if (isRule(s)) {
+                    ruleLines.add(s);
+                    byteSize += 1 + s.getBytes().length;
                 }
             }
-            catch (IOException e) {
-                e.printStackTrace();
-            }
         }
-        catch (Exception e) {
+        catch (IOException e) {
             e.printStackTrace();
         }
 

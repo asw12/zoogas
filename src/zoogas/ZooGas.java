@@ -56,6 +56,7 @@ public class ZooGas implements KeyListener {
 
     // command-line argument defaults
     static int defaultPort = 4444;
+    public static final String dataDir = "data/";
     public static String defaultPatternSetFilename = "ECOLOGY.txt", defaultToolboxFilename = "TOOLS.txt";
     static int defaultBoardSize = 128;
     static int defaultTargetUpdateRate = 50; // reduced to run on my 2yr-old Macbook Air - IH, 3/23/2010
@@ -222,8 +223,8 @@ public class ZooGas implements KeyListener {
                 System.err.println("\t                     - Start ZooGas in client mode");
                 System.err.println("\t[-s|--server]        - Start ZooGas in server mode");
                 System.err.println("\t[-p|--p <port>]      - Use <port> as the server port (default " + defaultPort + ")");
-                System.err.println("\t[-t|--tools <file>]  - Load tools from specified file (default \"" + defaultToolboxFilename + "\")");
-                System.err.println("\t[-r|--rules <file>]  - Load rules from specified file (default \"" + defaultPatternSetFilename + "\")");
+                System.err.println("\t[-t|--tools <file>]  - Load tools from specified file (default \"" + dataDir + defaultToolboxFilename + "\")");
+                System.err.println("\t[-r|--rules <file>]  - Load rules from specified file (default \"" + dataDir + defaultPatternSetFilename + "\")");
                 System.err.println("\t[-u|--updates <n>]   - Specify desired updates per second (default " + defaultTargetUpdateRate + ")");
                 System.err.println("\t[-?|-h|--help]       - Display this very useful help message");
                 System.exit(0);
@@ -254,7 +255,7 @@ public class ZooGas implements KeyListener {
             }
         }
 
-        gas.board.loadPatternSetFromFile(gas.patternSetFilename);
+        gas.board.loadPatternSetFromFile(gas.dataDir + gas.patternSetFilename);
         gas.spaceParticle = gas.board.initSpaceParticle(spaceParticleName);
         gas.start(serverAddr);
     }
@@ -272,7 +273,7 @@ public class ZooGas implements KeyListener {
         if (initImageFilename != null) {
             try {
                 BufferedImage img = ImageIO.read(new File(initImageFilename));
-                ParticleSet imgParticle = ParticleSet.fromFile(initParticleFilename);
+                ParticleSet imgParticle = ParticleSet.fromFile(dataDir + initParticleFilename);
                 board.initFromImage(img, imgParticle);
 
             }
@@ -511,7 +512,7 @@ public class ZooGas implements KeyListener {
 
     // init tools method
     private void initSprayTools() {
-        toolBox = ToolBox.fromFile(toolboxFilename, board, toolHeight, toolBarWidth, toolLabelWidth);
+        toolBox = ToolBox.fromFile(dataDir + toolboxFilename, board, toolHeight, toolBarWidth, toolLabelWidth);
     }
 
     private void useTools() {

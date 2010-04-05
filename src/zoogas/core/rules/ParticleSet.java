@@ -1,9 +1,19 @@
 package zoogas.core.rules;
 
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+
+import java.io.OutputStream;
+
+import java.io.PrintStream;
+
 import java.util.Set;
 import java.util.HashSet;
-
-import java.io.*;
 
 import zoogas.core.Board;
 import zoogas.core.Particle;
@@ -58,13 +68,14 @@ public class ParticleSet {
     }
 
     public static ParticleSet fromFile(String filename) {
+        InputStream fis = null;
         try {
-            FileInputStream fis = new FileInputStream(filename);
-            return fromStream(fis);
+            fis = new FileInputStream(filename);
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        catch (FileNotFoundException e) {
+            fis = ClassLoader.getSystemClassLoader().getResourceAsStream(filename);
         }
-        return null;
+        
+        return fromStream(fis);
     }
 }

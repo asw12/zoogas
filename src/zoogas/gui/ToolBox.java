@@ -39,19 +39,19 @@ public class ToolBox {
     }
 
     public static ToolBox fromFile(String filename, Board board, int toolHeight, int toolReserveBarWidth, int toolTextWidth) {
+        InputStream fis = null;
         try {
-            FileInputStream fis = new FileInputStream(filename);
-            ToolBox toolBox = fromStream(fis, board);
-            toolBox.toolHeight = toolHeight;
-            toolBox.toolReserveBarWidth = toolReserveBarWidth;
-            toolBox.toolTextWidth = toolTextWidth;
-            return toolBox;
+            fis = new FileInputStream(filename);
         }
-        catch (Exception e) {
-            e.printStackTrace();
+        catch (FileNotFoundException e) {
+            fis = ClassLoader.getSystemClassLoader().getResourceAsStream(filename);
         }
-        System.err.println("No TOOLS files found");
-        return null;
+
+        ToolBox toolBox = fromStream(fis, board);
+        toolBox.toolHeight = toolHeight;
+        toolBox.toolReserveBarWidth = toolReserveBarWidth;
+        toolBox.toolTextWidth = toolTextWidth;
+        return toolBox;
     }
 
     // render method
