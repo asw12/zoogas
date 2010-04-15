@@ -3,6 +3,7 @@ package zoogas.core.rules;
 import java.util.ArrayList;
 import java.util.regex.*;
 
+import zoogas.core.Thunk;
 import zoogas.core.topology.Topology;
 
 // Syntax for regex-based production rule generators:
@@ -115,101 +116,19 @@ public class TransformRuleMatch extends RuleMatch {
         }*/
 
         // expansion of $S, $T, groups ($1, $2...), increments ($+1.1 etc), decrements ($-1.1 etc) and modulo-increments ($+1%2.1 etc)
-        protected final String expandVariables(ArrayList<String> chunks, ArrayList<String> vars) {
+        protected final String expandVariables(ArrayList<String> chunks, ArrayList<Thunk<TransformRuleMatchResult, String>> vars) {
             StringBuilder sb = new StringBuilder();
             try {
                 int i;
                 for(i = 0; i < vars.size(); ++i) {
                     sb.append(chunks.get(i));
-                    String g = vars.get(i);
-
-                    if (g.equals("S"))
-                        sb.append(A);
-                    else if (g.equals("T")) {
-                        sb.append(B);
-                    }
-                    else if (g.charAt(0) == '+') {
-                        sb.append(expandInc(g));
-                    }
-                    else if (g.charAt(0) == '-') {
-                        sb.append(expandDec(g));
-                    }
-                    else if (g.charAt(0) == '%') {
-                        sb.append(expandMod(g));
-                    }
-                    else {
-                        sb.append(getGroup(g));
-                    }
+                    Thunk<TransformRuleMatch.TransformRuleMatchResult, String> var = vars.get(i);
+                    sb.append(var.process(this));
                 }
                 sb.append(chunks.get(i));
             }
             catch (Exception e) {
                 System.err.println("While expanding");
-                e.printStackTrace();
-            }
-            return sb.toString();
-        }
-
-        // expansion of $+1.n
-        @Deprecated
-        protected final String expandInc(String s) {
-            StringBuffer sb = new StringBuffer();
-            try {
-                Matcher m = incGroupPattern.matcher(s);
-                if (m.find()) {
-                    String inc = m.group(1), g = m.group(2);
-                    int n = Integer.valueOf(getGroup(g));
-                    int delta = inc.length() > 0 ? Integer.valueOf(inc) : 1;
-                    m.appendReplacement(sb, String.valueOf(n + delta));
-                }
-                m.appendTail(sb);
-            }
-            catch (Exception e) {
-                System.err.println("While expanding " + s);
-                e.printStackTrace();
-            }
-            return sb.toString();
-        }
-
-        // expansion of $-1.n
-        @Deprecated
-        protected final String expandDec(String s) {
-            StringBuffer sb = new StringBuffer();
-            try {
-                Matcher m = decGroupPattern.matcher(s);
-                if (m.find()) {
-                    String dec = m.group(1), g = m.group(2);
-                    int n = Integer.valueOf(getGroup(g));
-                    int delta = dec.length() > 0 ? Integer.valueOf(dec) : 1;
-                    if (n >= delta)
-                        m.appendReplacement(sb, String.valueOf(n - delta));
-                }
-                m.appendTail(sb);
-            }
-            catch (Exception e) {
-                System.err.println("While expanding " + s);
-                e.printStackTrace();
-            }
-            return sb.toString();
-        }
-
-        // expansion of $%3+1.n
-        @Deprecated
-        protected final String expandMod(String s) {
-            StringBuffer sb = new StringBuffer();
-            try {
-                Matcher m = modGroupPattern.matcher(s);
-                if (m.find()) {
-                    String mod = m.group(1), inc = m.group(2), g = m.group(3);
-                    int n = Integer.valueOf(getGroup(g));
-                    int M = Integer.valueOf(mod);
-                    int delta = inc.length() > 0 ? Integer.valueOf(inc) : 1;
-                    m.appendReplacement(sb, String.valueOf((n + delta) % M));
-                }
-                m.appendTail(sb);
-            }
-            catch (Exception e) {
-                System.err.println("While expanding " + s);
                 e.printStackTrace();
             }
             return sb.toString();

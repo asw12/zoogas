@@ -65,10 +65,6 @@ public class RuleMatch {
         return new RuleMatchResult(source, target);
     }
 
-    final Pattern modGroupPattern = Pattern.compile("%([1-9]\\d*)\\+(\\d*)\\.?([1-9]\\d*)");
-    final Pattern decGroupPattern = Pattern.compile("\\-(\\d*)\\.?([1-9]\\d*)");
-    final Pattern incGroupPattern = Pattern.compile("\\+(\\d*)\\.?([1-9]\\d*)");
-
     // TODO: move this to another file
 
     public class RuleMatchResult {
@@ -106,23 +102,20 @@ public class RuleMatch {
         }
 
         // helper method to get a group ($1,$2,...) from AB
-        String getGroup(String group) {
+        String getGroup(int n) {
             try {
-                int n = new Integer(group).intValue();
                 if (n <= am.groupCount())
                     return am.group(n);
                 else if (n <= am.groupCount() + bm.groupCount())
                     return bm.group(n - am.groupCount());
                 else {
-                    throw new Exception("While trying to get group $" + group + " matching " + A + " " + B + " to " + aPattern.pattern() + " " + bPattern.pattern());
+                    throw new Exception("While trying to get group $" + n + " matching " + A + " " + B + " to " + aPattern.pattern() + " " + bPattern.pattern());
                 }
             }
             catch (Exception e) {
                 e.printStackTrace();
                 return "";
             }
-        }
-
-        
+        }    
     }
 }
