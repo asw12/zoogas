@@ -359,25 +359,22 @@ public class Board extends MooreTopology {
         }
     }
 
-    // SYNCHRONIZED : this is one of three synchronized methods in this class
     // evolveLocalSourceAndLocalTarget : handle entirely local updates. Strictly in the family, folks
     // returns a UpdateEvent
-    synchronized public final UpdateEvent evolveLocalSourceAndLocalTarget(Point sourceCoords, Point targetCoords, int dir) {
+    public final UpdateEvent evolveLocalSourceAndLocalTarget(Point sourceCoords, Point targetCoords, int dir) {
         return evolveTargetForSource(sourceCoords, targetCoords, readCell(sourceCoords), readCell(targetCoords), dir, 0);
     }
 
-    // SYNCHRONIZED : this is one of three synchronized methods in this class
     // evolveLocalTargetForRemoteSource : handle a remote request for update.
     // Return the new source state (the caller of this method will send this returned state back over the network as a RETURN datagram).
-    synchronized public final Particle evolveLocalTargetForRemoteSource(Point targetCoords, Particle oldSourceState, int dir, double energyBarrier) {
+    public final Particle evolveLocalTargetForRemoteSource(Point targetCoords, Particle oldSourceState, int dir, double energyBarrier) {
         UpdateEvent pp = evolveTargetForSource(null, targetCoords, oldSourceState, readCell(targetCoords), dir, energyBarrier);
         return pp == null ? oldSourceState : pp.getSource();
     }
 
-    // SYNCHRONIZED : this is one of three synchronized methods in this class
     // evolveLocalSourceAndNonexistentTarget : handle the case where a source-target pair straddles the edge of the board, and there is no remote connection.
     // in this case, the dummy target particle is spaceParticle
-    synchronized public final UpdateEvent evolveLocalSourceAndDummyTarget(Point sourceCoords, Point targetCoords, int dir) {
+    public final UpdateEvent evolveLocalSourceAndDummyTarget(Point sourceCoords, Point targetCoords, int dir) {
         return evolveTargetForSource(sourceCoords, targetCoords, readCell(sourceCoords), spaceParticle, dir, 0);
     }
 
