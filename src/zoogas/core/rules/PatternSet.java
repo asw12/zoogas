@@ -77,7 +77,7 @@ public class PatternSet extends RuleSet {
         String subject = s.getXmlTagValue("OldSource");
 
         // create the basic object
-        TransformRulePattern p = new TransformRulePattern(getPrefix(subject), s.getXmlTagValue("Dir"), subject, s.getXmlTagValue("OldTarget"), s.getXmlTagValue("NewSource"), s.getXmlTagValue("NewTarget"), Double.parseDouble(s.getXmlTagValue("Prob")), s.getXmlTagValue("Say"));
+        TransformRulePattern p = new TransformRulePattern(topology, getPrefix(subject), s.getXmlTagValue("Dir"), subject, s.getXmlTagValue("OldTarget"), s.getXmlTagValue("NewSource"), s.getXmlTagValue("NewTarget"), Double.parseDouble(s.getXmlTagValue("Prob")), s.getXmlTagValue("Say"));
 
         // get optional bond attributes
         if (s.hasXmlTagValue("OptionalBond"))
@@ -114,7 +114,7 @@ public class PatternSet extends RuleSet {
     void addEnergyRule(RuleSyntax s) {
         String source = s.getXmlTagValue("Source");
         EnergyRulePattern p =
-            new EnergyRulePattern(getPrefix(source), source, s.getXmlTagValue("Target"), s.getXmlTagValue("Name"), Double.parseDouble(s.getXmlTagValue("Energy")), Double.parseDouble(s.getXmlTagValue("MinLen")), Double.parseDouble(s.getXmlTagValue("MaxLen")), Double.parseDouble(s.getXmlTagValue("LenTolerance")),
+            new EnergyRulePattern(topology, getPrefix(source), source, s.getXmlTagValue("Target"), s.getXmlTagValue("Name"), Double.parseDouble(s.getXmlTagValue("Energy")), Double.parseDouble(s.getXmlTagValue("MinLen")), Double.parseDouble(s.getXmlTagValue("MaxLen")), Double.parseDouble(s.getXmlTagValue("LenTolerance")),
                                   Double.parseDouble(s.getXmlTagValue("MinAngle")), Double.parseDouble(s.getXmlTagValue("MaxAngle")), Double.parseDouble(s.getXmlTagValue("AngleTolerance")));
         energyRulePattern.add(p);
         if (!energyRuleMatch.containsKey(p.bondName))

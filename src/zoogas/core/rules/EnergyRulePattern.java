@@ -1,5 +1,7 @@
 package zoogas.core.rules;
 
+import zoogas.core.topology.Topology;
+
 // Syntax for energy rule patterns:
 //  A B E
 // where
@@ -16,8 +18,8 @@ public class EnergyRulePattern extends RulePattern {
     double E;
 
     // constructors
-    public EnergyRulePattern(String w, String a, String b, String n, double e, double l, double L, double lTol, double minAngle, double maxAngle, double aTol) {
-        super(w, a, b);
+    public EnergyRulePattern(Topology topology, String w, String a, String b, String n, double e, double l, double L, double lTol, double minAngle, double maxAngle, double aTol) {
+        super(topology, w, a, b);
         bondName = n;
         minLen = l;
         maxLen = L;
@@ -31,5 +33,9 @@ public class EnergyRulePattern extends RulePattern {
     // accessors
     public final boolean hasAngleConstraint() {
         return maxAngle - minAngle < 2 || angleTolerance < 1;
+    }
+    
+    protected String expandDir(String s, Topology topology, int dir) {
+        return s;
     }
 }

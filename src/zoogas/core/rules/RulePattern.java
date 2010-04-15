@@ -6,17 +6,19 @@ import java.util.regex.Pattern;
 import zoogas.core.topology.Topology;
 
 public class RulePattern {
+    // constructors
+    public RulePattern(Topology topology, String w, String a, String b) {
+        prefix = w;
+        A = a;
+        B = b;
+        this.topology = topology;
+    }
+    
     // data
     private String prefix = null;
     protected String A = null;
     protected String B = null;
-
-    // constructors
-    public RulePattern(String w, String a, String b) {
-        prefix = w;
-        A = a;
-        B = b;
-    }
+    Topology topology = null;
 
     public final String getSourceName() {
         return A;
@@ -27,9 +29,8 @@ public class RulePattern {
     }
     
     // expansion of direction macros: $F, $B, $L, $R, $+L, etc.
-    final Pattern dirPattern = Pattern.compile("\\$(F|B|L|R|\\+L|\\+\\+L|\\+R|\\+\\+R)");
     protected String expandDir(String s, Topology topology, int dir) {
-        Matcher m = dirPattern.matcher(s);
+        Matcher m = Pattern.compile("\\$(F|B|L|R|\\+{1,2}L|\\+{1,2}R)").matcher(s);
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
             String var = m.group(1);

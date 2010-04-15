@@ -38,23 +38,16 @@ public class EnergyRuleMatch extends RuleMatch {
         return (EnergyRulePattern)pattern;
     }
 
-    // override expandDir to do nothing (hacky; refactor at some point to put expandDir in TransformRuleMatch)
-
-    protected String expandDir(String s) {
-        return s;
-    }
-
     // overload matches
-
     public boolean matches(String sourceName, String targetName, Point sourceToTarget, Point prevToSource) {
         EnergyRulePattern rp = energyPattern();
         boolean match;
 
-        len = topology.directLength(sourceToTarget);
+        len = pattern.topology.directLength(sourceToTarget);
         match = len >= rp.minLen && len <= rp.maxLen;
 
         if (match && prevToSource != null && rp.hasAngleConstraint()) {
-            angle = topology.angle(prevToSource, sourceToTarget);
+            angle = pattern.topology.angle(prevToSource, sourceToTarget);
             match = angle >= rp.minAngle && angle <= rp.maxAngle;
             //	    System.err.println("Angle between "+prevToSource+" and "+sourceToTarget+" is "+angle+"; match="+(match?"t":"f"));
         }

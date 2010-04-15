@@ -8,8 +8,8 @@ import zoogas.core.topology.Topology;
 public class RuleMatch {
     // data
     protected RulePattern pattern = null;
-    protected Topology topology = null;
-    private int dir = -1;
+    //protected Topology topology = null;
+    protected int dir = -1;
     protected Pattern aPattern = null;
     protected Pattern bPattern = null;
 
@@ -23,7 +23,7 @@ public class RuleMatch {
 
     // constructors
 
-    public RuleMatch(RulePattern p) {
+    protected RuleMatch(RulePattern p) {
         pattern = p;
     }
 
@@ -36,7 +36,6 @@ public class RuleMatch {
 
     public boolean bindDir(Topology topology, int d) {
         if (!dirBound()) {
-            this.topology = topology;
             dir = d;
             aPattern = Pattern.compile(pattern.regexA(topology, d));
             bPattern = Pattern.compile(pattern.regexB(topology, d));

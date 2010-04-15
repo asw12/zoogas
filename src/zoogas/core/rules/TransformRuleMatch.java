@@ -43,15 +43,8 @@ public class TransformRuleMatch extends RuleMatch {
     }
 
     // constructors
-
-    public TransformRuleMatch(TransformRulePattern p) {
-        super(p);
-        if (p.dir != null)
-            dirPattern = Pattern.compile(p.dir);
-    }
-
     public TransformRuleMatch(TransformRulePattern p, Topology topology, int dir) {
-        this(p);
+        super(p);
         bindDir(topology, dir);
     }
 
@@ -68,7 +61,7 @@ public class TransformRuleMatch extends RuleMatch {
         if (dirPattern == null)
             dirMatches = true;
         else {
-            String dirString = topology.dirString(d);
+            String dirString = t.dirString(d);
             dirMatches = dirPattern.matcher(dirString).matches();
             boundOk = boundOk && dirMatches;
         }
@@ -110,10 +103,6 @@ public class TransformRuleMatch extends RuleMatch {
         public final String D() {
             return D;
         }
-        
-        /*protected final String expand(String s) {
-            return expandVariables(expandDir(s));
-        }*/
 
         // expansion of $S, $T, groups ($1, $2...), increments ($+1.1 etc), decrements ($-1.1 etc) and modulo-increments ($+1%2.1 etc)
         protected final String expandVariables(ArrayList<String> chunks, ArrayList<Thunk<TransformRuleMatchResult, String>> vars) {
@@ -123,7 +112,8 @@ public class TransformRuleMatch extends RuleMatch {
                 for(i = 0; i < vars.size(); ++i) {
                     sb.append(chunks.get(i));
                     Thunk<TransformRuleMatch.TransformRuleMatchResult, String> var = vars.get(i);
-                    sb.append(var.process(this));
+                    String expandedVar = var.process(this);
+                    sb.append(expandedVar);
                 }
                 sb.append(chunks.get(i));
             }
@@ -131,7 +121,9 @@ public class TransformRuleMatch extends RuleMatch {
                 System.err.println("While expanding");
                 e.printStackTrace();
             }
-            return sb.toString();
+            String str = sb.toString();
+            str = pattern.expandDir(str, pattern.topology, dir);
+            return str; 
         }
     }
 }

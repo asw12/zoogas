@@ -5,10 +5,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import zoogas.core.Thunk;
+import zoogas.core.topology.Topology;
 
 public class TransformRulePattern extends RulePattern {
     // data
-    String dir = null, C = null, D = null, V = null;
+    String C = null, D = null, V = null;
     private double probability = 0;
     Vector<BondPattern> optionalLhsBond = null, requiredLhsBond = null, excludedLhsBond = null, rhsBond = null;
 
@@ -24,10 +25,8 @@ public class TransformRulePattern extends RulePattern {
     // c, d: RHS back-referenced substitutions to be generated (source & target updates)
     // p, v: probability & verb attributes
 
-    public TransformRulePattern(String w, String dir, String a, String b, String c, String d, double p, String v) {
-        super(w, a, b);
-        if (dir != null && dir.length() > 0)
-            this.dir = dir;
+    public TransformRulePattern(Topology topology, String w, String dir, String a, String b, String c, String d, double p, String v) {
+        super(topology, w, a, b);
         C = c;
         D = d;
         probability = p;
