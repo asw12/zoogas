@@ -59,7 +59,7 @@ public class ZooGas implements KeyListener {
     public static final String dataDir = "data/";
     public static String defaultPatternSetFilename = "ECOLOGY.txt", defaultToolboxFilename = "TOOLS.txt";
     static int defaultBoardSize = 128;
-    static int defaultTargetUpdateRate = 50; // reduced to run on my 2yr-old Macbook Air - IH, 3/23/2010
+    static int defaultTargetUpdateRate = 100; // reduced to run on my 2yr-old Macbook Air - IH, 3/23/2010
     static double cacheFlushFraction = .5; // when this fraction of the heap is used, flush all caches
     int cacheFlushes = 0;
 
@@ -148,9 +148,11 @@ public class ZooGas implements KeyListener {
     protected ClientToServer toWorldServer = null;
 
     // main()
+
     public static void main(String[] args) {
         main(args, null);
     }
+
     public static void main(String[] args, ClientToServer toWorldServer) {
         // create ZooGas object
         ZooGas gas = new ZooGas();
@@ -393,6 +395,7 @@ public class ZooGas implements KeyListener {
                 }
             };
 
+        ((JPanel)zooGasFrame.getContentPane()).setDoubleBuffered(false);
         boardPanel.setDoubleBuffered(false);
         toolBoxPanel.setDoubleBuffered(false);
         statusPanel.setDoubleBuffered(false);
@@ -459,19 +462,26 @@ public class ZooGas implements KeyListener {
     }
 
     // main game loop
+
     private void gameLoop() {
         // Game logic goes here
         zooGasFrame.repaint();
 
         Runtime runtime = Runtime.getRuntime();
         long lastTimeCheck = System.currentTimeMillis();
-        long updateStartTime = System.currentTimeMillis();
+        long nextUpdateTime = System.currentTimeMillis();
         long targetTimePerUpdate = 1000 / targetUpdateRate;
-        long timeDiff;
+        long updateStartTime;
+        long timeDiff = 5;
 
         try {
             while (true) {
                 updateStartTime = System.currentTimeMillis();
+
+                if (updateStartTime + timeDiff < nextUpdateTime) {
+                    Thread.sleep(nextUpdateTime - (updateStartTime + timeDiff));
+                    updateStartTime = System.currentTimeMillis();
+                }
 
                 if (!stopPressed)
                     evolveStuff();
@@ -494,23 +504,24 @@ public class ZooGas implements KeyListener {
                 }
                 zooGasFrame.repaint();
 
-                timeDiff = System.currentTimeMillis() - updateStartTime;
-                if (timeDiff < targetTimePerUpdate) {
-                    Thread.currentThread().sleep(targetTimePerUpdate - timeDiff);
-                }
+                timeDiff = System.currentTimeMillis() - (updateStartTime - 5);
+                nextUpdateTime = System.currentTimeMillis() + targetTimePerUpdate;
             }
         }
         catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 
     // main evolution loop
+
     private void evolveStuff() {
         board.update(patternMatchesPerRefresh, renderer);
         ++boardUpdateCount;
     }
 
     // init tools method
+
     private void initSprayTools() {
         toolBox = ToolBox.fromFile(dataDir + toolboxFilename, board, toolHeight, toolBarWidth, toolLabelWidth);
     }
@@ -548,14 +559,6 @@ public class ZooGas implements KeyListener {
     }
 
     /**
-     *Refreshes the buffer of the ZooGas frame
-     */
-    protected void refreshBuffer() {
-        // update buffer
-        zooGasFrame.getContentPane().repaint();
-    }
-
-    /**
      *Draws all active bonds between particles using random colors
      * @param g
      */
@@ -576,6 +579,7 @@ public class ZooGas implements KeyListener {
             }
         }
     }
+
     private void drawBond(Graphics g, Point p, Point q) {
         g.setColor(new Color((float)Math.random(), (float)Math.random(), (float)Math.random()));
         Point pg = renderer.getGraphicsCoords(p);
@@ -585,6 +589,7 @@ public class ZooGas implements KeyListener {
     }
 
     // highlight enclosures of size >= 10
+
     protected void drawEnclosures(Graphics g) {
         String wallPrefix = "wall";
         int minSize = 10;
@@ -623,7 +628,8 @@ public class ZooGas implements KeyListener {
         Formatter formatter = new Formatter(sb, Locale.US);
         Runtime runtime = Runtime.getRuntime();
         printOrHide(g, lastDumpStats, updatesRow, true, new Color(48, 48, 0));
-        printOrHide(g, "Heap: current " + kmg(runtime.totalMemory()) + ", max " + kmg(runtime.maxMemory()) + ", free " + kmg(runtime.freeMemory()) + (cacheFlushes > 0 ? (", cache flushes " + cacheFlushes) : ""), updatesRow + 1, true, new Color(48, 48, 0));
+        printOrHide(g, "Heap: current " + kmg(runtime.totalMemory()) + ", max " + kmg(runtime.maxMemory()) + ", free " + kmg(runtime.freeMemory()) + (cacheFlushes > 0 ? (", cache flushes " + cacheFlushes) : ""), updatesRow + 1, true,
+                    new Color(48, 48, 0));
         printOrHide(g, formatter.format("Updates/sec: %.2f", updatesPerSecond).toString(), updatesRow + 2, true, new Color(64, 64, 0));
     }
 
@@ -693,6 +699,7 @@ public class ZooGas implements KeyListener {
     }
 
     // TODO: drawSpeechBalloon should detect cases where the speech balloon is out of the Panel's paintable area, and adjust its position accordingly
+
     protected void drawSpeechBalloon(Graphics g, Point cell, double xOffset, double yOffset, int balloonBorder, String[] text, Color[] textColor, Color balloonColor, Color bgColor) {
         java.awt.Point bSize = balloonSize(g, text), cellCoords = renderer.getGraphicsCoords(cell);
         java.awt.Point balloonTopLeft = new java.awt.Point(cellCoords.x + (int)(bSize.x * (xOffset - 0.5)), cellCoords.y + (int)(bSize.y * yOffset));
@@ -740,6 +747,7 @@ public class ZooGas implements KeyListener {
     }
 
     // tool bars
+
     protected void drawToolbox(Graphics g) {
         // spray levels
         toolBox.plotReserves(g);
@@ -778,6 +786,7 @@ public class ZooGas implements KeyListener {
     }
 
     private static int bleed = 6;
+
     private int rowYpos(Graphics g, int row) {
         return row * (charHeight(g) + bleed);
     }
@@ -827,6 +836,7 @@ public class ZooGas implements KeyListener {
 
     // UI methods
     // mouse events
+
     private class BoardMouseAdapter extends MouseInputAdapter {
         public void mousePressed(MouseEvent e) {
             mouseDown = true;
@@ -860,6 +870,7 @@ public class ZooGas implements KeyListener {
     }
 
     // key events
+
     public void keyTyped(KeyEvent e) {
     }
 

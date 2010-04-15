@@ -1,12 +1,19 @@
 package zoogas.core.rules;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class TransformRulePattern extends RulePattern {
     // data
     String dir = null, C = null, D = null, V = null;
     private double probability = 0;
     Vector<BondPattern> optionalLhsBond = null, requiredLhsBond = null, excludedLhsBond = null, rhsBond = null;
+
+    public ArrayList<String> cThunkChunks = null;
+    public ArrayList<String> cThunkVars = null;
+    public ArrayList<String> dThunkChunks = null;
+    public ArrayList<String> dThunkVars = null;
 
     // constructor
     // w: subject prefix
@@ -22,6 +29,13 @@ public class TransformRulePattern extends RulePattern {
         D = d;
         probability = p;
         V = v;
+        
+        cThunkChunks = new ArrayList<String>();
+        cThunkVars = new ArrayList<String>();
+        dThunkChunks = new ArrayList<String>();
+        dThunkVars = new ArrayList<String>();
+        
+        prepareVariables();
     }
 
     public double getProbability() {
@@ -49,4 +63,34 @@ public class TransformRulePattern extends RulePattern {
             bondVec.add(BondPattern.fromString(b[n]));
         return bondVec;
     }
+
+    protected final String prepareVariables() {
+        StringBuffer sb = new StringBuffer();
+        try {
+            Pattern macroPattern = Pattern.compile("\\$(S|T|\\d+|[\\+\\-]\\d*\\.?\\d+|%\\d+\\+\\d*\\.?\\d+)");
+            Matcher m = macroPattern.matcher(C);
+            int index = 0;
+            while (m.find()) {
+                String g = m.group(1);
+                cThunkChunks.add(C.substring(index, m.start()));
+                cThunkVars.add(g);
+                index = m.end();
+            }
+            cThunkChunks.add(C.substring(index));
+            
+            m = macroPattern.matcher(D);
+            index = 0;
+            while (m.find()) {
+                String g = m.group(1);
+                dThunkChunks.add(D.substring(index, m.start()));
+                dThunkVars.add(g);
+                index = m.end();
+            }
+            dThunkChunks.add(D.substring(index));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return sb.toString();
+    }   
 }

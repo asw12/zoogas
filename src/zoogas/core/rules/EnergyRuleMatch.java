@@ -23,24 +23,29 @@ public class EnergyRuleMatch extends RuleMatch {
     double len, angle;
 
     // constructors
+
     public EnergyRuleMatch(EnergyRulePattern p) {
         super(p);
     }
+
     public EnergyRuleMatch(EnergyRulePattern p, Topology topology) {
         super(p, topology, -1);
     }
 
     // rule accessor
+
     public final EnergyRulePattern energyPattern() {
         return (EnergyRulePattern)pattern;
     }
 
     // override expandDir to do nothing (hacky; refactor at some point to put expandDir in TransformRuleMatch)
+
     protected String expandDir(String s) {
         return s;
     }
 
     // overload matches
+
     public boolean matches(String sourceName, String targetName, Point sourceToTarget, Point prevToSource) {
         EnergyRulePattern rp = energyPattern();
         boolean match;
@@ -54,10 +59,11 @@ public class EnergyRuleMatch extends RuleMatch {
             //	    System.err.println("Angle between "+prevToSource+" and "+sourceToTarget+" is "+angle+"; match="+(match?"t":"f"));
         }
 
-        return match && super.matches(sourceName, targetName);
+        return match && aPattern.matcher(sourceName).matches() && bPattern.matcher(targetName).matches();
     }
 
     // other public methods
+
     public final double E() {
         EnergyRulePattern rp = energyPattern();
         double angleRange = rp.maxAngle - rp.minAngle, lenRange = rp.maxLen - rp.minLen;

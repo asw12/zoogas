@@ -39,6 +39,7 @@ public class Particle implements Comparable {
     public static String visibleSeparatorChar = "/", visibleSpaceChar = "_";
 
     // constructor
+
     public Particle(String name, String prefix, Color color, double energy, Board board, PatternSet ps) {
         if (name.length() > maxNameLength) {
             System.err.println("Warning: truncating name " + name);
@@ -74,6 +75,7 @@ public class Particle implements Comparable {
 
     // methods
     // reference counting
+
     public int getReferenceCount() {
         return references.size();
     }
@@ -115,12 +117,14 @@ public class Particle implements Comparable {
     }
 
     // part of name visible to player
+
     public final String visibleName() {
         return visibleText(name);
     }
 
     static Pattern nonWhitespace = Pattern.compile("\\S");
     static Pattern aliasPattern = Pattern.compile("[^/]+/'([^']+)'.*");
+
     public static String visibleText(String s) {
         String[] partsOfName = s.split(visibleSeparatorChar, 2);
         Matcher aliasMatcher = aliasPattern.matcher(s);
@@ -130,16 +134,19 @@ public class Particle implements Comparable {
     }
 
     // normalizedTotalTransformRate
+
     public final double normalizedTotalTransformRate() {
         return Math.min(totalTransformRate / transformRuleMatch.length, 1);
     }
 
     // method to test if a Particle is active (i.e. has any transformation rules) in a given direction
+
     public final boolean isActive(int dir) {
         return transformRuleMatch[dir].length > 0;
     }
 
     // helper to sample a new direction
+
     public final int sampleDir() {
         double p = Math.random() * totalTransformRate;
         int d = transformRate.length - 1;
@@ -150,6 +157,7 @@ public class Particle implements Comparable {
 
     // helper to sample a new (source,target) pair
     // returns null if no rule found
+
     public final UpdateEvent samplePair(int dir, Particle oldTarget) {
         RandomVariable<UpdateEvent> rv = null;
         if (transform.get(dir).containsKey(oldTarget)) {
@@ -170,25 +178,21 @@ public class Particle implements Comparable {
     }
 
     // method to compile transformation rules for a new target Particle
+
     RandomVariable<UpdateEvent> compileTransformRules(Particle target, int dir) {
         RandomVariable<UpdateEvent> rv = new RandomVariable<UpdateEvent>();
         for (int n = 0; n < transformRuleMatch[dir].length; ++n) {
 
             TransformRuleMatch rm = transformRuleMatch[dir][n];
+            TransformRuleMatch.TransformRuleMatchResult result = rm.match(name, target.name);
 
-            if (rm.bindSource(name) && rm.bindTarget(target.name)) {
-
-                String cName = rm.C();
-                String dName = rm.D();
+            if (result.matches()) {
+                String cName = result.C();
+                String dName = result.D();
                 String verb = rm.V();
                 double prob = rm.P() / transformRate[dir];
 
                 TransformRulePattern trp = rm.transformPattern();
-
-                // we now have everything we need from rm
-                // therefore, unbind it so we can call getOrCreateParticle (which may re-bind and therefore corrupt it)
-                rm.unbindSourceAndTarget();
-
                 Particle newSource = patternSet.getOrCreateParticle(cName, board);
                 Particle newTarget = patternSet.getOrCreateParticle(dName, board);
 
@@ -201,13 +205,13 @@ public class Particle implements Comparable {
                     rv.add(pp, prob);
                 }
             }
-            rm.unbindSourceAndTarget();
         }
         rv.close();
         return rv;
     }
 
     // helpers to count number of compiled transformation rules
+
     public int transformationRules() {
         int r = 0;
         for (HashMap<Particle, RandomVariable<UpdateEvent>> map : transform)
@@ -216,6 +220,7 @@ public class Particle implements Comparable {
     }
 
     // helper to count number of compiled transformation rule outcomes
+
     public int outcomes() {
         int o = 0;
         for (int d = 0; d < transform.size(); ++d)
@@ -225,11 +230,13 @@ public class Particle implements Comparable {
     }
 
     // equals method
+
     public final boolean equals(Particle p) {
         return name.equals(p.name);
     }
 
     // hashcode method
+
     public int hashCode() {
         return name.hashCode();
     }
@@ -245,6 +252,7 @@ public class Particle implements Comparable {
 	//	super.finalize();
     }
     */
+
     public int compareTo(Object o) {
         Particle p = (Particle)o;
         return name.compareTo(p.name);

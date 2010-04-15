@@ -12,12 +12,14 @@ import zoogas.core.SprayTool;
 public class ToolBox {
     // data
     private ArrayList<SprayTool> tools = new ArrayList<SprayTool>();
+    private HashMap<Character, SprayTool> toolKeys = new HashMap<Character, SprayTool>();
     SprayTool currentTool = null; // current spray tool
 
     // dimensions
     int toolHeight = 0, toolReserveBarWidth = 0, toolTextWidth = 0;
 
     // constructors
+
     static ToolBox fromStream(InputStream in, Board board) {
         ToolBox tb = new ToolBox();
         InputStreamReader read = new InputStreamReader(in);
@@ -26,8 +28,10 @@ public class ToolBox {
             while (buff.ready()) {
                 String s = buff.readLine();
                 SprayTool st = SprayTool.fromString(s, board);
-                if (st != null)
+                if (st != null) {
                     tb.tools.add(st);
+                    tb.toolKeys.put(st.getHotKey(), st);
+                }
             }
             buff.close();
             tb.currentTool = tb.tools.size() > 0 ? tb.tools.get(0) : null;
@@ -55,6 +59,7 @@ public class ToolBox {
     }
 
     // render method
+
     public void plotReserves(Graphics g) {
         for (int row = 0; row < tools.size(); ++row) {
             SprayTool st = tools.get(row);
@@ -63,6 +68,7 @@ public class ToolBox {
     }
 
     // refill method
+
     public void refill(double scale) {
         for (SprayTool st : tools)
             st.refill(scale);
@@ -74,16 +80,15 @@ public class ToolBox {
      * @return true if the ToolBox fired a SprayTool
      */
     public boolean hotKeyPressed(char c) {
-        for (SprayTool st : tools) {
-            if (st.isHotKey(c)) {
-                currentTool = st;
-                return true;
-            }
+        if (toolKeys.containsKey(c)) {
+            currentTool = toolKeys.get(c);
+            return true;
         }
         return false;
     }
 
     // process click-select
+
     public boolean clickSelect(int ypos) {
         int row = ypos / toolHeight;
         if (row >= 0 && row < tools.size()) {
@@ -96,6 +101,7 @@ public class ToolBox {
     public ArrayList<SprayTool> getTools() {
         return tools;
     }
+
     public SprayTool getCurrentTool() {
         return currentTool;
     }

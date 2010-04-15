@@ -147,7 +147,7 @@ public class PatternSet extends RuleSet {
         Vector<TransformRuleMatch> w = transformRuleMatch.get(dir);
         for (int n = 0; n < w.size(); ++n) {
             TransformRuleMatch rm = w.get(n);
-            if (rm.matches(particleName))
+            if (rm.matchesSource(particleName))
                 v.add(rm);
         }
         return (TransformRuleMatch[])v.toArray(new TransformRuleMatch[v.size()]);
